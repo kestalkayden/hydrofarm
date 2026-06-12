@@ -1,0 +1,23 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/oak_log",
+    "post":     "minecraft:block/oak_log"
+  },
+  "elements": [
+    {
+      "name": "corner_post",
+      "comment": "Sits at the NW corner of the bed: x=0-2, z=0-2 (corner). Stays entirely within block boundaries. y=6-14: taller than rail (y=12) so the post head visibly stands above the rail. y=6 floor sits on pad top.",
+      "from": [0, 6, 0],
+      "to":   [2, 14, 2],
+      "faces": {
+        "up":    {"texture": "#post", "uv": [0, 0, 2, 2]},
+        "down":  {"texture": "#post", "uv": [0, 0, 2, 2]},
+        "north": {"texture": "#post", "uv": [0, 0, 2, 8]},
+        "south": {"texture": "#post", "uv": [0, 0, 2, 8]},
+        "east":  {"texture": "#post", "uv": [0, 0, 2, 8]},
+        "west":  {"texture": "#post", "uv": [0, 0, 2, 8]}
+      }
+    }
+  ]
+}

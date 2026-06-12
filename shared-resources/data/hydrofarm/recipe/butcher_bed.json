@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "L": "minecraft:leather",
+    "F": "minecraft:oak_fence",
+    "S": "minecraft:iron_sword",
+    "I": "minecraft:iron_ingot"
+  },
+  "pattern": [
+    "LLL",
+    "FSF",
+    "I I"
+  ],
+  "result": {
+    "id": "hydrofarm:butcher_bed"
+  }
+}

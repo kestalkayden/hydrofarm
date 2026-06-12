@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "repairing=false": { "model": "hydrofarm:block/mending_station" },
+    "repairing=true":  { "model": "hydrofarm:block/mending_station_on" }
+  }
+}

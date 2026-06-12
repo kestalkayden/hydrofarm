@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "H": "minecraft:honeycomb",
+    "D": "minecraft:glowstone_dust"
+  },
+  "pattern": [
+    "HHH",
+    "HDH",
+    "HHH"
+  ],
+  "result": {
+    "id": "hydrofarm:glowcube"
+  }
+}

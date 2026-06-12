@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "B": "minecraft:bucket"
+  },
+  "pattern": [
+    "III",
+    "IBI",
+    "III"
+  ],
+  "result": {
+    "id": "hydrofarm:liquid_siphon"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top":      "hydrofarm:block/repulser_top",
+    "bottom":   "hydrofarm:block/repulser_bottom",
+    "side":     "hydrofarm:block/repulser_side_active",
+    "particle": "hydrofarm:block/repulser_side_active"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "parent": "minecraft:block/block",
+  "comment": "PORT (inactive): band CENTERED — neutral, no flow direction.",
+  "textures": {
+    "particle": "hydrofarm:block/item_terminal_port",
+    "metal":  "hydrofarm:block/terminal_nozzle",
+    "accent": "hydrofarm:block/item_terminal_port"
+  },
+  "elements": [
+    {
+      "from": [5, 5, 0],
+      "to":   [11, 11, 2.25],
+      "faces": {
+        "north": {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "south": {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "east":  {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "west":  {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "up":    {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "down":  {"texture": "#metal", "uv": [0, 0, 16, 16]}
+      }
+    },
+    {
+      "from": [4.5, 4.5, 2.25],
+      "to":   [11.5, 11.5, 3.75],
+      "faces": {
+        "north": {"texture": "#accent", "uv": [0, 0, 16, 16]},
+        "south": {"texture": "#accent", "uv": [0, 0, 16, 16]},
+        "east":  {"texture": "#accent", "uv": [0, 0, 16, 16]},
+        "west":  {"texture": "#accent", "uv": [0, 0, 16, 16]},
+        "up":    {"texture": "#accent", "uv": [0, 0, 16, 16]},
+        "down":  {"texture": "#accent", "uv": [0, 0, 16, 16]}
+      }
+    },
+    {
+      "from": [5, 5, 3.75],
+      "to":   [11, 11, 6],
+      "faces": {
+        "north": {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "south": {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "east":  {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "west":  {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "up":    {"texture": "#metal", "uv": [0, 0, 16, 16]},
+        "down":  {"texture": "#metal", "uv": [0, 0, 16, 16]}
+      }
+    }
+  ]
+}

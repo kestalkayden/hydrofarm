@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "L": "minecraft:oak_log",
+    "I": "minecraft:iron_ingot",
+    "B": "hydrofarm:hydroponics_bed"
+  },
+  "pattern": [
+    "LIL",
+    "IBI",
+    "LIL"
+  ],
+  "result": {
+    "id": "hydrofarm:tree_farm_bed"
+  }
+}

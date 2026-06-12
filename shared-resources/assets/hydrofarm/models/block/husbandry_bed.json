@@ -1,0 +1,24 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/moss_block",
+    "top":      "minecraft:block/moss_block",
+    "side":     "minecraft:block/moss_block",
+    "bottom":   "minecraft:block/moss_block"
+  },
+  "elements": [
+    {
+      "name": "bed_pad",
+      "from": [0, 0, 0],
+      "to":   [16, 6, 16],
+      "faces": {
+        "up":    {"texture": "#top"},
+        "down":  {"texture": "#bottom", "cullface": "down"},
+        "north": {"texture": "#side", "uv": [0, 10, 16, 16], "cullface": "north"},
+        "south": {"texture": "#side", "uv": [0, 10, 16, 16], "cullface": "south"},
+        "east":  {"texture": "#side", "uv": [0, 10, 16, 16], "cullface": "east"},
+        "west":  {"texture": "#side", "uv": [0, 10, 16, 16], "cullface": "west"}
+      }
+    }
+  ]
+}

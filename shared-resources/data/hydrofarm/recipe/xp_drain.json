@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "G": "minecraft:glass_bottle",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "IGI",
+    "GRG",
+    "IGI"
+  ],
+  "result": {
+    "id": "hydrofarm:xp_drain"
+  }
+}

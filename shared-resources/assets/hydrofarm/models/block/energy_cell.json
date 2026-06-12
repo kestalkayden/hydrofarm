@@ -1,0 +1,31 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "hydrofarm:block/liquid_tank_metal",
+    "panel":    "hydrofarm:block/energy_cell_face",
+    "metal":    "hydrofarm:block/liquid_tank_metal"
+  },
+  "elements": [
+    { "from": [0, 0, 0.1], "to": [16, 16, 16],   "faces": { "north": {"texture": "#panel"} } },
+    { "from": [0, 0, 0],   "to": [16, 16, 15.9], "faces": { "south": {"texture": "#panel"} } },
+    { "from": [0, 0, 0],   "to": [15.9, 16, 16], "faces": { "east":  {"texture": "#panel"} } },
+    { "from": [0.1, 0, 0], "to": [16, 16, 16],   "faces": { "west":  {"texture": "#panel"} } },
+    { "from": [0, 0, 0],   "to": [16, 15.9, 16], "faces": { "up":    {"texture": "#panel"} } },
+    { "from": [0, 0.1, 0], "to": [16, 16, 16],   "faces": { "down":  {"texture": "#panel"} } },
+
+    { "from": [0, 0, 0],   "to": [16, 2, 2],   "faces": { "north": {"texture": "#metal"}, "down": {"texture": "#metal"} } },
+    { "from": [0, 0, 14],  "to": [16, 2, 16],  "faces": { "south": {"texture": "#metal"}, "down": {"texture": "#metal"} } },
+    { "from": [0, 14, 0],  "to": [16, 16, 2],  "faces": { "north": {"texture": "#metal"}, "up":   {"texture": "#metal"} } },
+    { "from": [0, 14, 14], "to": [16, 16, 16], "faces": { "south": {"texture": "#metal"}, "up":   {"texture": "#metal"} } },
+
+    { "from": [0, 0, 0],   "to": [2, 2, 16],   "faces": { "west": {"texture": "#metal"}, "down": {"texture": "#metal"} } },
+    { "from": [14, 0, 0],  "to": [16, 2, 16],  "faces": { "east": {"texture": "#metal"}, "down": {"texture": "#metal"} } },
+    { "from": [0, 14, 0],  "to": [2, 16, 16],  "faces": { "west": {"texture": "#metal"}, "up":   {"texture": "#metal"} } },
+    { "from": [14, 14, 0], "to": [16, 16, 16], "faces": { "east": {"texture": "#metal"}, "up":   {"texture": "#metal"} } },
+
+    { "from": [0, 0, 0],   "to": [2, 16, 2],   "faces": { "north": {"texture": "#metal"}, "west": {"texture": "#metal"} } },
+    { "from": [14, 0, 0],  "to": [16, 16, 2],  "faces": { "north": {"texture": "#metal"}, "east": {"texture": "#metal"} } },
+    { "from": [0, 0, 14],  "to": [2, 16, 16],  "faces": { "south": {"texture": "#metal"}, "west": {"texture": "#metal"} } },
+    { "from": [14, 0, 14], "to": [16, 16, 16], "faces": { "south": {"texture": "#metal"}, "east": {"texture": "#metal"} } }
+  ]
+}

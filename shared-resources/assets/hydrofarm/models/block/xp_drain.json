@@ -1,0 +1,24 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "hydrofarm:block/xp_drain_side",
+    "top":      "hydrofarm:block/xp_drain_top",
+    "side":     "hydrofarm:block/xp_drain_side",
+    "bottom":   "hydrofarm:block/xp_drain_bottom"
+  },
+  "elements": [
+    {
+      "name": "pad",
+      "from": [1, 0, 1],
+      "to":   [15, 2, 15],
+      "faces": {
+        "up":    {"texture": "#top",    "uv": [1, 1, 15, 15]},
+        "down":  {"texture": "#bottom", "uv": [1, 1, 15, 15]},
+        "north": {"texture": "#side",   "uv": [1, 14, 15, 16]},
+        "south": {"texture": "#side",   "uv": [1, 14, 15, 16]},
+        "east":  {"texture": "#side",   "uv": [1, 14, 15, 16]},
+        "west":  {"texture": "#side",   "uv": [1, 14, 15, 16]}
+      }
+    }
+  ]
+}

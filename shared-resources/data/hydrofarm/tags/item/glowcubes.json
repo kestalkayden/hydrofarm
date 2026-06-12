@@ -1,0 +1,22 @@
+{
+  "replace": false,
+  "values": [
+    "hydrofarm:glowcube",
+    "hydrofarm:white_glowcube",
+    "hydrofarm:orange_glowcube",
+    "hydrofarm:magenta_glowcube",
+    "hydrofarm:light_blue_glowcube",
+    "hydrofarm:yellow_glowcube",
+    "hydrofarm:lime_glowcube",
+    "hydrofarm:pink_glowcube",
+    "hydrofarm:gray_glowcube",
+    "hydrofarm:light_gray_glowcube",
+    "hydrofarm:cyan_glowcube",
+    "hydrofarm:purple_glowcube",
+    "hydrofarm:blue_glowcube",
+    "hydrofarm:brown_glowcube",
+    "hydrofarm:green_glowcube",
+    "hydrofarm:red_glowcube",
+    "hydrofarm:black_glowcube"
+  ]
+}

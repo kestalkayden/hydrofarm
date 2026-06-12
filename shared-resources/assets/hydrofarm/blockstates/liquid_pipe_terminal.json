@@ -1,0 +1,33 @@
+{
+  "multipart": [
+    { "apply": { "model": "hydrofarm:block/liquid_pipe_core" } },
+
+    { "when": { "face_north": "pipe" }, "apply": { "model": "hydrofarm:block/liquid_pipe_arm" } },
+    { "when": { "face_south": "pipe" }, "apply": { "model": "hydrofarm:block/liquid_pipe_arm", "y": 180 } },
+    { "when": { "face_east":  "pipe" }, "apply": { "model": "hydrofarm:block/liquid_pipe_arm", "y": 90  } },
+    { "when": { "face_west":  "pipe" }, "apply": { "model": "hydrofarm:block/liquid_pipe_arm", "y": 270 } },
+    { "when": { "face_up":    "pipe" }, "apply": { "model": "hydrofarm:block/liquid_pipe_arm", "x": 270 } },
+    { "when": { "face_down":  "pipe" }, "apply": { "model": "hydrofarm:block/liquid_pipe_arm", "x": 90  } },
+
+    { "when": { "face_north": "port" }, "apply": { "model": "hydrofarm:block/item_terminal_port" } },
+    { "when": { "face_south": "port" }, "apply": { "model": "hydrofarm:block/item_terminal_port", "y": 180 } },
+    { "when": { "face_east":  "port" }, "apply": { "model": "hydrofarm:block/item_terminal_port", "y": 90  } },
+    { "when": { "face_west":  "port" }, "apply": { "model": "hydrofarm:block/item_terminal_port", "y": 270 } },
+    { "when": { "face_up":    "port" }, "apply": { "model": "hydrofarm:block/item_terminal_port", "x": 270 } },
+    { "when": { "face_down":  "port" }, "apply": { "model": "hydrofarm:block/item_terminal_port", "x": 90  } },
+
+    { "when": { "face_north": "extract" }, "apply": { "model": "hydrofarm:block/item_terminal_extract" } },
+    { "when": { "face_south": "extract" }, "apply": { "model": "hydrofarm:block/item_terminal_extract", "y": 180 } },
+    { "when": { "face_east":  "extract" }, "apply": { "model": "hydrofarm:block/item_terminal_extract", "y": 90  } },
+    { "when": { "face_west":  "extract" }, "apply": { "model": "hydrofarm:block/item_terminal_extract", "y": 270 } },
+    { "when": { "face_up":    "extract" }, "apply": { "model": "hydrofarm:block/item_terminal_extract", "x": 270 } },
+    { "when": { "face_down":  "extract" }, "apply": { "model": "hydrofarm:block/item_terminal_extract", "x": 90  } },
+
+    { "when": { "face_north": "insert" }, "apply": { "model": "hydrofarm:block/item_terminal_insert" } },
+    { "when": { "face_south": "insert" }, "apply": { "model": "hydrofarm:block/item_terminal_insert", "y": 180 } },
+    { "when": { "face_east":  "insert" }, "apply": { "model": "hydrofarm:block/item_terminal_insert", "y": 90  } },
+    { "when": { "face_west":  "insert" }, "apply": { "model": "hydrofarm:block/item_terminal_insert", "y": 270 } },
+    { "when": { "face_up":    "insert" }, "apply": { "model": "hydrofarm:block/item_terminal_insert", "x": 270 } },
+    { "when": { "face_down":  "insert" }, "apply": { "model": "hydrofarm:block/item_terminal_insert", "x": 90  } }
+  ]
+}

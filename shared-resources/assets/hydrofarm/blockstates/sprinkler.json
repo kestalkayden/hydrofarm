@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "lit=false": { "model": "hydrofarm:block/sprinkler" },
+    "lit=true":  { "model": "hydrofarm:block/sprinkler_on" }
+  }
+}

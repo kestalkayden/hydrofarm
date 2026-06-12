@@ -1,0 +1,78 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "hydrofarm:block/hydroponics_bed",
+    "all":      "hydrofarm:block/hydroponics_bed"
+  },
+  "elements": [
+    {
+      "name": "bed_pad",
+      "from": [0, 0, 0],
+      "to":   [16, 6, 16],
+      "faces": {
+        "up":    {"texture": "#all"},
+        "down":  {"texture": "#all"},
+        "north": {"texture": "#all", "uv": [0, 10, 16, 16]},
+        "south": {"texture": "#all", "uv": [0, 10, 16, 16]},
+        "east":  {"texture": "#all", "uv": [0, 10, 16, 16]},
+        "west":  {"texture": "#all", "uv": [0, 10, 16, 16]}
+      }
+    },
+    {
+      "name": "channel_hub",
+      "from": [7, 6, 7],
+      "to":   [9, 7, 9],
+      "faces": {
+        "up":    {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "east":  {"texture": "#all"},
+        "west":  {"texture": "#all"}
+      }
+    },
+    {
+      "name": "channel_arm_north",
+      "from": [7, 6, 2],
+      "to":   [9, 7, 7],
+      "faces": {
+        "up":    {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "east":  {"texture": "#all"},
+        "west":  {"texture": "#all"}
+      }
+    },
+    {
+      "name": "channel_arm_south",
+      "from": [7, 6, 9],
+      "to":   [9, 7, 14],
+      "faces": {
+        "up":    {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "east":  {"texture": "#all"},
+        "west":  {"texture": "#all"}
+      }
+    },
+    {
+      "name": "channel_arm_east",
+      "from": [9, 6, 7],
+      "to":   [14, 7, 9],
+      "faces": {
+        "up":    {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "east":  {"texture": "#all"}
+      }
+    },
+    {
+      "name": "channel_arm_west",
+      "from": [2, 6, 7],
+      "to":   [7, 7, 9],
+      "faces": {
+        "up":    {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "west":  {"texture": "#all"}
+      }
+    }
+  ]
+}

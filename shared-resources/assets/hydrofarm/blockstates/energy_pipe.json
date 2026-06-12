@@ -1,0 +1,11 @@
+{
+  "multipart": [
+    { "apply": { "model": "hydrofarm:block/energy_pipe_core" } },
+    { "when": { "north": "true" }, "apply": { "model": "hydrofarm:block/energy_pipe_arm" } },
+    { "when": { "south": "true" }, "apply": { "model": "hydrofarm:block/energy_pipe_arm", "y": 180 } },
+    { "when": { "east":  "true" }, "apply": { "model": "hydrofarm:block/energy_pipe_arm", "y": 90  } },
+    { "when": { "west":  "true" }, "apply": { "model": "hydrofarm:block/energy_pipe_arm", "y": 270 } },
+    { "when": { "up":    "true" }, "apply": { "model": "hydrofarm:block/energy_pipe_arm", "x": 270 } },
+    { "when": { "down":  "true" }, "apply": { "model": "hydrofarm:block/energy_pipe_arm", "x": 90  } }
+  ]
+}

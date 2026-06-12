@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/iron_block",
+    "rail":     "minecraft:block/iron_block"
+  },
+  "elements": [
+    {
+      "name": "rail_top",
+      "from": [14, 10, 0],
+      "to":   [16, 12, 2],
+      "faces": {
+        "up":    {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "down":  {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "north": {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "south": {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "east":  {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "west":  {"texture": "#rail", "uv": [14, 0, 16, 2]}
+      }
+    },
+    {
+      "name": "rail_bottom",
+      "from": [14, 6, 0],
+      "to":   [16, 8, 2],
+      "faces": {
+        "up":    {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "down":  {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "north": {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "south": {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "east":  {"texture": "#rail", "uv": [0, 0, 2, 2]},
+        "west":  {"texture": "#rail", "uv": [14, 0, 16, 2]}
+      }
+    }
+  ]
+}

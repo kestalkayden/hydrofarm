@@ -1,0 +1,15 @@
+{
+  "model": {
+    "type": "minecraft:condition",
+    "property": "minecraft:has_component",
+    "component": "hydrofarm:captured_entity",
+    "on_true": {
+      "type": "minecraft:model",
+      "model": "hydrofarm:item/animal_capture_net_filled"
+    },
+    "on_false": {
+      "type": "minecraft:model",
+      "model": "hydrofarm:item/animal_capture_net"
+    }
+  }
+}

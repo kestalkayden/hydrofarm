@@ -1,0 +1,117 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "particle": "hydrofarm:block/green_glowcube",
+    "shell": "hydrofarm:block/green_glowcube",
+    "core": "hydrofarm:block/green_glowcube_core"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#shell",
+          "cullface": "down"
+        },
+        "up": {
+          "texture": "#shell",
+          "cullface": "up"
+        },
+        "north": {
+          "texture": "#shell",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#shell",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#shell",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#shell",
+          "cullface": "east"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        1,
+        1
+      ],
+      "to": [
+        15,
+        15,
+        15
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#core"
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#core"
+        },
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#core"
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#core"
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#core"
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#core"
+        }
+      }
+    }
+  ]
+}

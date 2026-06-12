@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#hydrofarm:glowcubes",
+    "minecraft:yellow_dye"
+  ],
+  "result": {
+    "id": "hydrofarm:yellow_glowcube"
+  }
+}

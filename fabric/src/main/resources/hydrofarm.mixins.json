@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.kestalkayden.hydrofarm.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "FarmlandBlockMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

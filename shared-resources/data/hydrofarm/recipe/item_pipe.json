@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": "minecraft:polished_deepslate",
+    "G": "minecraft:glass"
+  },
+  "pattern": [
+    "DDD",
+    "GGG",
+    "DDD"
+  ],
+  "result": {
+    "id": "hydrofarm:item_pipe",
+    "count": 8
+  }
+}

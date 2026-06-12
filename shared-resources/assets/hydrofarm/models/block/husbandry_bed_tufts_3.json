@@ -1,0 +1,45 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/moss_block",
+    "tuft":     "minecraft:block/short_grass"
+  },
+  "elements": [
+    {
+      "name": "tuft_c1_ns",
+      "from": [2, 6, 11],
+      "to":   [6, 13, 12],
+      "faces": {
+        "north": {"texture": "#tuft", "uv": [0, 2, 16, 16]},
+        "south": {"texture": "#tuft", "uv": [0, 2, 16, 16]}
+      }
+    },
+    {
+      "name": "tuft_c1_ew",
+      "from": [4, 6, 9],
+      "to":   [5, 13, 13],
+      "faces": {
+        "east": {"texture": "#tuft", "uv": [0, 2, 16, 16]},
+        "west": {"texture": "#tuft", "uv": [0, 2, 16, 16]}
+      }
+    },
+    {
+      "name": "tuft_c2_ns",
+      "from": [9, 6, 4],
+      "to":   [13, 13, 5],
+      "faces": {
+        "north": {"texture": "#tuft", "uv": [0, 2, 16, 16]},
+        "south": {"texture": "#tuft", "uv": [0, 2, 16, 16]}
+      }
+    },
+    {
+      "name": "tuft_c2_ew",
+      "from": [11, 6, 2],
+      "to":   [12, 13, 6],
+      "faces": {
+        "east": {"texture": "#tuft", "uv": [0, 2, 16, 16]},
+        "west": {"texture": "#tuft", "uv": [0, 2, 16, 16]}
+      }
+    }
+  ]
+}

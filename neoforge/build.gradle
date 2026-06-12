@@ -1,0 +1,81 @@
+plugins {
+    id 'net.neoforged.moddev' version "${moddev_version}"
+    id 'maven-publish'
+}
+
+base {
+    archivesName = "${project.archives_base_name}-neoforge"
+}
+
+// Compile the shared :common sources into this jar (against NeoForge's Minecraft view). The
+// standalone :common project additionally compiles them against vanilla NeoForm as a
+// platform-agnostic purity check. Assets/data stay in shared-resources.
+sourceSets.main.java.srcDir "${rootProject.projectDir}/common/src/main/java"
+
+repositories {
+    // Modrinth — for Jade (compile-only). Mirrors the Fabric build; our @WailaPlugin in :common is
+    // discovered by Jade's annotation scan on NeoForge, with no runtime dependency on Jade.
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content { includeGroup "maven.modrinth" }
+    }
+}
+
+dependencies {
+    // Jade — compile-only. Players need Jade installed for the tooltip to show; the plugin class is
+    // loaded only when Jade detects the @WailaPlugin annotation. No runtime requirement.
+    compileOnly "maven.modrinth:jade:26.1.1+neoforge"
+}
+
+neoForge {
+    version = neoforge_version
+    validateAccessTransformers = false
+
+    mods {
+        hydrofarm {
+            sourceSet sourceSets.main
+        }
+    }
+
+    runs {
+        client { client() }
+        server { server() }
+        data { data() }
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from('../shared-resources') {
+        exclude '**/*.java'
+    }
+
+    filesMatching("META-INF/neoforge.mods.toml") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+java {
+    withSourcesJar()
+}
+
+jar {
+    from("../LICENSE") {
+        rename { "${it}_${base.archivesName.get()}" }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}

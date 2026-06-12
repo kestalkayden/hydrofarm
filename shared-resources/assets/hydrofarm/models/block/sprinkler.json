@@ -1,0 +1,23 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "hydrofarm:block/sprinkler_side",
+    "side":     "hydrofarm:block/sprinkler_side",
+    "face":     "hydrofarm:block/sprinkler_pad_top"
+  },
+  "elements": [
+    {
+      "name": "pad",
+      "from": [1, 0, 1],
+      "to":   [15, 2, 15],
+      "faces": {
+        "up":    {"texture": "#face", "uv": [1, 1, 15, 15]},
+        "down":  {"texture": "#side", "uv": [1, 1, 15, 15]},
+        "north": {"texture": "#side", "uv": [1, 14, 15, 16]},
+        "south": {"texture": "#side", "uv": [1, 14, 15, 16]},
+        "east":  {"texture": "#side", "uv": [1, 14, 15, 16]},
+        "west":  {"texture": "#side", "uv": [1, 14, 15, 16]}
+      }
+    }
+  ]
+}

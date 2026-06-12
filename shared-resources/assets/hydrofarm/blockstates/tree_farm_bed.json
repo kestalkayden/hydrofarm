@@ -1,0 +1,20 @@
+{
+  "multipart": [
+    { "apply": { "model": "hydrofarm:block/hydroponics_bed" } },
+
+    { "when": { "north": "false" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_edge" } },
+    { "when": { "east":  "false" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_edge", "y": 90  } },
+    { "when": { "south": "false" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_edge", "y": 180 } },
+    { "when": { "west":  "false" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_edge", "y": 270 } },
+
+    { "when": { "north": "true" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_pipe" } },
+    { "when": { "east":  "true" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_pipe", "y": 90  } },
+    { "when": { "south": "true" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_pipe", "y": 180 } },
+    { "when": { "west":  "true" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_pipe", "y": 270 } },
+
+    { "when": { "planter_nw": "true" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_dome" } },
+    { "when": { "planter_ne": "true" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_dome", "y": 90  } },
+    { "when": { "planter_se": "true" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_dome", "y": 180 } },
+    { "when": { "planter_sw": "true" }, "apply": { "model": "hydrofarm:block/hydroponics_bed_dome", "y": 270 } }
+  ]
+}

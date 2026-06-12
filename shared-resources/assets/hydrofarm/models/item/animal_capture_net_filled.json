@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "hydrofarm:item/animal_capture_net_filled"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "hydrofarm",
+  "version": "${version}",
+  "name": "Hydrofarm",
+  "description": "Water-tech and growth automation for Fabric — tanks, pipes, pumps, sprinklers, hydroponic planters, and more.",
+  "authors": [
+    "Kestalkayden"
+  ],
+  "contact": {
+    "homepage": "https://github.com/kestalkayden/hydrofarm",
+    "sources": "https://github.com/kestalkayden/hydrofarm"
+  },
+  "license": "MIT",
+  "icon": "icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.kestalkayden.hydrofarm.HydrofarmFabric"
+    ],
+    "client": [
+      "com.kestalkayden.hydrofarm.client.HydrofarmClient"
+    ],
+    "jade": [
+      "com.kestalkayden.hydrofarm.compat.HydrofarmJadePlugin"
+    ],
+    "modmenu": [
+      "com.kestalkayden.hydrofarm.compat.HydrofarmModMenu"
+    ]
+  },
+  "mixins": [
+    "hydrofarm.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "fabric-api": "*",
+    "minecraft": ">=26.1 <26.2",
+    "java": ">=25"
+  }
+}

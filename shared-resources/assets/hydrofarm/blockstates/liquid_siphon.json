@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "active=false": { "model": "hydrofarm:block/liquid_siphon" },
+    "active=true":  { "model": "hydrofarm:block/liquid_siphon_active" }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "crafting=false": { "model": "hydrofarm:block/autocrafter" },
+    "crafting=true":  { "model": "hydrofarm:block/autocrafter_active" }
+  }
+}

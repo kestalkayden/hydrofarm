@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "particle": "hydrofarm:block/liquid_tank_glass",
+    "glass":    "hydrofarm:block/liquid_tank_glass"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0.1],
+      "to":   [16, 16, 16],
+      "faces": {
+        "north": {"texture": "#glass", "cullface": "north"}
+      }
+    }
+  ]
+}

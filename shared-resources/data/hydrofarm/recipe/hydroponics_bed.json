@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "G": "minecraft:glass",
+    "P": "hydrofarm:liquid_pipe"
+  },
+  "pattern": [
+    "IGI",
+    "GPG",
+    "IGI"
+  ],
+  "result": {
+    "id": "hydrofarm:hydroponics_bed"
+  }
+}

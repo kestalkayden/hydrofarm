@@ -1,0 +1,21 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "hydrofarm:block/liquid_tank_metal",
+    "metal":    "hydrofarm:block/liquid_tank_metal"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to":   [2, 16, 2],
+      "faces": {
+        "north": {"texture": "#metal", "cullface": "north"},
+        "west":  {"texture": "#metal", "cullface": "west"},
+        "up":    {"texture": "#metal", "cullface": "up"},
+        "down":  {"texture": "#metal", "cullface": "down"},
+        "east":  {"texture": "#metal"},
+        "south": {"texture": "#metal"}
+      }
+    }
+  ]
+}

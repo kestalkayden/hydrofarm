@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "minecraft:copper_ingot",
+    "G": "minecraft:glass"
+  },
+  "pattern": [
+    "CCC",
+    "GGG",
+    "CCC"
+  ],
+  "result": {
+    "id": "hydrofarm:liquid_pipe",
+    "count": 8
+  }
+}

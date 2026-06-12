@@ -1,0 +1,35 @@
+plugins {
+    id 'net.neoforged.moddev' version "${moddev_version}"
+}
+
+base {
+    archivesName = "${project.archives_base_name}-common"
+}
+
+neoForge {
+    // Vanilla-mode: compile shared code against NeoForm-provided Minecraft (official Mojang
+    // names — the same names both Loom and NeoForge see in 26.1) with no loader code. This lets
+    // all platform-agnostic gameplay logic live here once and link cleanly into both jars.
+    neoFormVersion = "26.1.2-1"
+    validateAccessTransformers = false
+}
+
+repositories {
+    // Modrinth — for Jade's API (compile-only). Jade's api package is the same across loaders, so
+    // the shared compat plugin/providers compile here against the vanilla view too.
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content { includeGroup "maven.modrinth" }
+    }
+}
+
+dependencies {
+    // Jade — compile-only, soft dependency. The shared Jade plugin/providers live in :common so both
+    // loaders get them; each loader pulls its own Jade jar at compile time (see fabric/neoforge).
+    compileOnly "maven.modrinth:jade:26.1.1+neoforge"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}

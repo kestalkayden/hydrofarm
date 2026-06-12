@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "facing=up,active=false":    { "model": "hydrofarm:block/xp_drain" },
+    "facing=up,active=true":     { "model": "hydrofarm:block/xp_drain_active" },
+    "facing=down,active=false":  { "model": "hydrofarm:block/xp_drain",        "x": 180 },
+    "facing=down,active=true":   { "model": "hydrofarm:block/xp_drain_active", "x": 180 },
+    "facing=north,active=false": { "model": "hydrofarm:block/xp_drain",        "x": 90 },
+    "facing=north,active=true":  { "model": "hydrofarm:block/xp_drain_active", "x": 90 },
+    "facing=south,active=false": { "model": "hydrofarm:block/xp_drain",        "x": 90, "y": 180 },
+    "facing=south,active=true":  { "model": "hydrofarm:block/xp_drain_active", "x": 90, "y": 180 },
+    "facing=east,active=false":  { "model": "hydrofarm:block/xp_drain",        "x": 90, "y": 90  },
+    "facing=east,active=true":   { "model": "hydrofarm:block/xp_drain_active", "x": 90, "y": 90  },
+    "facing=west,active=false":  { "model": "hydrofarm:block/xp_drain",        "x": 90, "y": 270 },
+    "facing=west,active=true":   { "model": "hydrofarm:block/xp_drain_active", "x": 90, "y": 270 }
+  }
+}

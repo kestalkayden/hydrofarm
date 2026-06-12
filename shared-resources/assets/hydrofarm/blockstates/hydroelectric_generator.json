@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "working=false": { "model": "hydrofarm:block/hydroelectric_generator" },
+    "working=true":  { "model": "hydrofarm:block/hydroelectric_generator" }
+  }
+}

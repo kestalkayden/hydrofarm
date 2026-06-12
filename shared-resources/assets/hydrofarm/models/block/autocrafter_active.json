@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top":      "hydrofarm:block/autocrafter_top",
+    "bottom":   "hydrofarm:block/liquid_tank_metal",
+    "side":     "hydrofarm:block/autocrafter_side_active",
+    "particle": "hydrofarm:block/autocrafter_side_active"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "multipart": [
+    { "apply": { "model": "hydrofarm:block/husbandry_bed" } },
+
+    { "apply": [
+        { "model": "hydrofarm:block/husbandry_bed_tufts_0", "weight": 3 },
+        { "model": "hydrofarm:block/husbandry_bed_tufts_1", "weight": 2 },
+        { "model": "hydrofarm:block/husbandry_bed_tufts_2", "weight": 2 },
+        { "model": "hydrofarm:block/husbandry_bed_tufts_3", "weight": 1 }
+    ] },
+
+    { "when": { "north": "false" }, "apply": { "model": "hydrofarm:block/husbandry_bed_rail" } },
+    { "when": { "east":  "false" }, "apply": { "model": "hydrofarm:block/husbandry_bed_rail", "y": 90  } },
+    { "when": { "south": "false" }, "apply": { "model": "hydrofarm:block/husbandry_bed_rail", "y": 180 } },
+    { "when": { "west":  "false" }, "apply": { "model": "hydrofarm:block/husbandry_bed_rail", "y": 270 } },
+
+    { "when": { "AND": [ {"north": "false"}, {"west": "true"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_rail_end_left" } },
+    { "when": { "AND": [ {"east":  "false"}, {"north": "true"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_rail_end_left", "y": 90  } },
+    { "when": { "AND": [ {"south": "false"}, {"east": "true"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_rail_end_left", "y": 180 } },
+    { "when": { "AND": [ {"west":  "false"}, {"south": "true"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_rail_end_left", "y": 270 } },
+
+    { "when": { "AND": [ {"north": "false"}, {"east": "true"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_rail_end_right" } },
+    { "when": { "AND": [ {"east":  "false"}, {"south": "true"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_rail_end_right", "y": 90  } },
+    { "when": { "AND": [ {"south": "false"}, {"west": "true"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_rail_end_right", "y": 180 } },
+    { "when": { "AND": [ {"west":  "false"}, {"north": "true"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_rail_end_right", "y": 270 } },
+
+    { "when": { "AND": [ {"north": "false"}, {"west": "false"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_corner_post" } },
+    { "when": { "AND": [ {"north": "false"}, {"east": "false"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_corner_post", "y": 90  } },
+    { "when": { "AND": [ {"south": "false"}, {"east": "false"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_corner_post", "y": 180 } },
+    { "when": { "AND": [ {"south": "false"}, {"west": "false"} ] },
+      "apply": { "model": "hydrofarm:block/husbandry_bed_corner_post", "y": 270 } }
+  ]
+}
