@@ -69,12 +69,9 @@ jobs:
         id: publish-fabric
         uses: Kir-Antipov/mc-publish@v3.3
         with:
-          # TODO before first tag: set both IDs after creating the project pages
-          # (Modrinth slug + CurseForge numeric ID), and add MODRINTH_TOKEN +
-          # CURSEFORGE_TOKEN as repo secrets.
           modrinth-id: hydrofarm
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          curseforge-id: 0
+          curseforge-id: 1573076
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-tag: ${{ github.ref_name }}
@@ -106,7 +103,7 @@ jobs:
         with:
           modrinth-id: hydrofarm
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          curseforge-id: 0
+          curseforge-id: 1573076
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-tag: ${{ github.ref_name }}
