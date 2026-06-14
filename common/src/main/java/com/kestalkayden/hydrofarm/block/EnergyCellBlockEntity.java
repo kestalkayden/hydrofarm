@@ -27,6 +27,7 @@ import net.minecraft.world.level.storage.ValueOutput;
 
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.EnergyBuffer;
+import com.kestalkayden.hydrofarm.util.PositionStagger;
 
 /** Passive energy bank that clusters with adjacent cells into a shared pool. Per-cell capacity
  *  is {@link #CELL_CAPACITY}; the cluster total is computed by summing members. Energy is TYPELESS
@@ -52,7 +53,7 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
     /** Per-BE jitter [0,16) added to the TTL so cache refreshes don't re-synchronize after an
      *  epoch bump (which resets every cell's cache to the same tick — a fixed TTL would then
      *  re-BFS every cell on the SAME tick every 40t). Position-hashed, deterministic. */
-    private final long clusterTtlJitter = Math.floorMod(worldPosition.asLong() * 0x9E3779B97F4A7C15L, 16L);
+    private final long clusterTtlJitter = PositionStagger.offset(worldPosition, 16);
     private Cluster cachedCluster;
     private long cachedClusterEpoch = Long.MIN_VALUE;
     private long cachedClusterTick  = Long.MIN_VALUE;

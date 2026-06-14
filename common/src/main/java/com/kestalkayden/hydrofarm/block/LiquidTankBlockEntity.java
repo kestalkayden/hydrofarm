@@ -29,6 +29,7 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
+import com.kestalkayden.hydrofarm.util.PositionStagger;
 
 /** Tank that holds up to {@link #TANK_CAPACITY_MB} of a single fluid. Phase 1 refactor: storage
  *  now carries fluid identity (was water-only) so later phases can extend to lava, XP, etc.
@@ -62,7 +63,7 @@ public class LiquidTankBlockEntity extends BlockEntity {
     /** Per-BE jitter [0,16) added to the TTL so cache refreshes don't re-synchronize after an
      *  epoch bump (which resets every tank's cache to the same tick — a fixed TTL would then
      *  re-BFS every tank on the SAME tick every 40t). Position-hashed, deterministic. */
-    private final long clusterTtlJitter = Math.floorMod(worldPosition.asLong() * 0x9E3779B97F4A7C15L, 16L);
+    private final long clusterTtlJitter = PositionStagger.offset(worldPosition, 16);
     private Cluster cachedCluster;
     private long cachedClusterEpoch = Long.MIN_VALUE;
     private long cachedClusterTick = Long.MIN_VALUE;

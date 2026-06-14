@@ -13,6 +13,7 @@ import com.kestalkayden.hydrofarm.HydrofarmConfig;
 import com.kestalkayden.hydrofarm.block.AbstractClusterBedBlockEntity;
 import com.kestalkayden.hydrofarm.block.AbstractClusterBedBlockEntity.Cluster;
 import com.kestalkayden.hydrofarm.block.AnimalBedHost;
+import com.kestalkayden.hydrofarm.util.PositionStagger;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -199,7 +200,7 @@ public class AnimalBedRenderer<T extends AbstractClusterBedBlockEntity & AnimalB
         int coldBuilds = 0;
         for (Plotted p : cf.render) {
             boolean reuseTick =
-                (((p.home.asLong() * 0x9E3779B97F4A7C15L) >>> 32) + p.stall + gameTime & 1L) != 0L;
+                ((PositionStagger.mix(p.home.asLong()) >>> 32) + p.stall + gameTime & 1L) != 0L;
             if (reuseTick) {
                 EntityRenderState prev = findPrevState(prevRender, p);
                 if (prev != null) {

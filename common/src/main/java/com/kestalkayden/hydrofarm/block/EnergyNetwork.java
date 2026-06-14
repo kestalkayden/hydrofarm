@@ -133,7 +133,8 @@ public final class EnergyNetwork {
     private List<Source> sources(ServerLevel level, BlockPos pos) {
         long epoch = TransportNetwork.epoch();
         long now = level.getGameTime();
-        if (cachedSources != null && cachedEpoch == epoch && now - cachedTick < NET_CACHE_TTL) {
+        if (cachedSources != null && cachedEpoch == epoch
+                && now - cachedTick < NET_CACHE_TTL + TransportNetwork.cacheTtlJitter(pos)) {
             return cachedSources;
         }
         cachedSources = findSources(level, pos);

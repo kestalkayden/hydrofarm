@@ -55,7 +55,7 @@ public class ItemPipeTerminalBlockEntity extends BlockEntity {
 
     /** Cached network-wide INSERT faces, shared across this terminal's EXTRACT faces (they all see
      *  the same network). Valid while {@link TransportNetwork#epoch()} is unchanged and younger than
-     *  {@link #NET_CACHE_TTL}. */
+     *  {@link #NET_CACHE_TTL} plus a per-node jitter ({@link TransportNetwork#cacheTtlJitter}). */
     private static final long NET_CACHE_TTL = 40;
     private List<FaceRef> cachedInsertFaces;
     private long cachedNetEpoch = Long.MIN_VALUE;
@@ -189,7 +189,8 @@ public class ItemPipeTerminalBlockEntity extends BlockEntity {
     private List<FaceRef> insertFaces(ServerLevel level, BlockPos pos) {
         long epoch = TransportNetwork.epoch();
         long now = level.getGameTime();
-        if (cachedInsertFaces != null && cachedNetEpoch == epoch && now - cachedNetTick < NET_CACHE_TTL) {
+        if (cachedInsertFaces != null && cachedNetEpoch == epoch
+                && now - cachedNetTick < NET_CACHE_TTL + TransportNetwork.cacheTtlJitter(pos)) {
             return cachedInsertFaces;
         }
         cachedInsertFaces = walkInsertFaces(level, pos);

@@ -36,6 +36,8 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
+import com.kestalkayden.hydrofarm.util.PositionStagger;
+
 /** Abstract parent for any "cluster bed" — a block that forms a single-layer adjacency cluster
  *  with same-typed neighbors and pools water + Liquid XP + an item buffer across all members.
  *  Concrete subclasses (HydroponicsBed, HusbandryBed, ButcherBed, etc.) add their own per-bed
@@ -96,7 +98,7 @@ public abstract class AbstractClusterBedBlockEntity extends BlockEntity implemen
      *  tick; with a fixed TTL the whole farm then re-BFSes on the SAME tick every 40t — a
      *  synchronized O(total beds × cluster size) spike. Position-hashed (deterministic across
      *  save/load), and the differing per-bed periods keep the phases drifting apart for good. */
-    private final long clusterTtlJitter = Math.floorMod(worldPosition.asLong() * 0x9E3779B97F4A7C15L, 16L);
+    private final long clusterTtlJitter = PositionStagger.offset(worldPosition, 16);
 
     /** Global item-contents revision + cluster-shared count memo for {@link #countItemInCluster}.
      *  External inserts consult {@link #canAccept} once per exposed slot — hoppers/pipes iterate all
@@ -695,9 +697,7 @@ public abstract class AbstractClusterBedBlockEntity extends BlockEntity implemen
      *  across the window instead of spiking once per period. Deterministic across save/load (computed
      *  from {@link #worldPosition}, never stored); the golden-ratio mix decorrelates adjacent beds. */
     protected int phaseOffset(int period) {
-        if (period <= 1) return 0;
-        long mixed = worldPosition.asLong() * 0x9E3779B97F4A7C15L;
-        return (int) Math.floorMod(mixed, (long) period);
+        return PositionStagger.offset(worldPosition, period);
     }
 
     public static int redistributeCluster(Level level, BlockPos seed, Block bedBlock) {

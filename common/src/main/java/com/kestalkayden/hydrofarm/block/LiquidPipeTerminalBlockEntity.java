@@ -58,7 +58,8 @@ public class LiquidPipeTerminalBlockEntity extends BlockEntity {
     private static final int BACKOFF_MAX_COOLDOWN  = 40;
     private static final int BACKOFF_RAMP_CAP      = 2;
 
-    /** Cached network-wide INSERT faces, shared across this terminal's EXTRACT faces. */
+    /** Cached network-wide INSERT faces, shared across this terminal's EXTRACT faces. Valid until the
+     *  {@link TransportNetwork#epoch()} changes or the TTL (plus a per-node jitter) elapses. */
     private static final long NET_CACHE_TTL = 40;
     private List<FaceRef> cachedInsertFaces;
     private long cachedNetEpoch = Long.MIN_VALUE;
@@ -219,7 +220,8 @@ public class LiquidPipeTerminalBlockEntity extends BlockEntity {
     private List<FaceRef> insertFaces(ServerLevel level, BlockPos pos) {
         long epoch = TransportNetwork.epoch();
         long now = level.getGameTime();
-        if (cachedInsertFaces != null && cachedNetEpoch == epoch && now - cachedNetTick < NET_CACHE_TTL) {
+        if (cachedInsertFaces != null && cachedNetEpoch == epoch
+                && now - cachedNetTick < NET_CACHE_TTL + TransportNetwork.cacheTtlJitter(pos)) {
             return cachedInsertFaces;
         }
         cachedInsertFaces = walkInsertFaces(level, pos);

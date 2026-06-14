@@ -18,6 +18,7 @@ import com.kestalkayden.hydrofarm.HydrofarmConfig;
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.FluidApi;
 import com.kestalkayden.hydrofarm.platform.HydrofarmPlatform;
+import com.kestalkayden.hydrofarm.util.PositionStagger;
 
 public class SprinklerBlockEntity extends BlockEntity {
 
@@ -74,7 +75,7 @@ public class SprinklerBlockEntity extends BlockEntity {
 
     public SprinklerBlockEntity(BlockPos pos, BlockState state) {
         super(HydrofarmRefs.SPRINKLER_BE.get(), pos, state);
-        long mixed = pos.asLong() * 0x9E3779B97F4A7C15L;
+        long mixed = PositionStagger.mix(pos.asLong());
         this.scanPhase = (int) Math.floorMod(mixed, (long) SCAN_INTERVAL);
         this.growthPhase = (int) Math.floorMod(mixed >>> 17, (long) GROWTH_INTERVAL);
     }
