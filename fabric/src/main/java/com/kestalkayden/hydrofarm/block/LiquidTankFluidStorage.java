@@ -7,8 +7,6 @@ import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 
@@ -117,18 +115,9 @@ public class LiquidTankFluidStorage extends SnapshotParticipant<LiquidTankBlockE
         return (long) clusterMembers().size() * be.getCapacityMb() * DROPLETS_PER_MB;
     }
 
-    /** Resolves cluster members in bottom-up order. Returns just {@code [be]} when not in a
-     *  valid multi-block cluster (single tank, irregular shape, or no level reference). */
+    /** The tank cluster's members, resolved + cached per tick on the BE (shared across probes). */
     private List<LiquidTankBlockEntity> clusterMembers() {
-        Level level = be.getLevel();
-        LiquidTankBlockEntity.Cluster cluster = level == null ? null : be.findCluster();
-        if (cluster == null || !cluster.isMultiBlock()) return List.of(be);
-
-        java.util.ArrayList<LiquidTankBlockEntity> list = new java.util.ArrayList<>(cluster.size());
-        for (BlockPos pos : cluster.members()) {
-            if (level.getBlockEntity(pos) instanceof LiquidTankBlockEntity neighbor) list.add(neighbor);
-        }
-        return list.isEmpty() ? List.of(be) : list;
+        return be.clusterMembers();
     }
 
     /** Returns the fluid stored by any member of the cluster, or {@link Fluids#EMPTY} if every

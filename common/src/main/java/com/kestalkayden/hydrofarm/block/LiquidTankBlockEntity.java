@@ -1,6 +1,7 @@
 package com.kestalkayden.hydrofarm.block;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +68,11 @@ public class LiquidTankBlockEntity extends BlockEntity {
     private Cluster cachedCluster;
     private long cachedClusterEpoch = Long.MIN_VALUE;
     private long cachedClusterTick = Long.MIN_VALUE;
+
+    /** Per-tick cache of the resolved member BEs — see {@link #clusterMembers()}. */
+    private List<LiquidTankBlockEntity> cachedMembers;
+    private long cachedMembersTick = Long.MIN_VALUE;
+    private Cluster cachedMembersCluster;
 
     /** Per-tick cache of the cluster's total mB + fluid for the renderer. Tank amounts only change
      *  on a server tick (synced to the client), so recomputing once per tick instead of per frame
@@ -270,6 +276,30 @@ public class LiquidTankBlockEntity extends BlockEntity {
         cachedClusterEpoch = epoch;
         cachedClusterTick = now;
         return fresh;
+    }
+
+    /** Resolved cluster member BEs, cached per tick. The loader capability wrappers query the member
+     *  list on every insert/extract/getAmount/getCapacity probe — many times per tick under active
+     *  transfer — and each rebuild is N {@code getBlockEntity} lookups; resolve once per tick instead,
+     *  keyed by the cached {@link Cluster} identity (a topology change yields a fresh Cluster, which
+     *  rebuilds) and the tick. Returns {@code [this]} when not in a multi-tank cluster. */
+    public List<LiquidTankBlockEntity> clusterMembers() {
+        if (level == null) return List.of(this);
+        Cluster cluster = findCluster();
+        if (cluster == null || !cluster.isMultiBlock()) return List.of(this);
+        long now = level.getGameTime();
+        if (cachedMembers != null && cachedMembersTick == now && cachedMembersCluster == cluster) {
+            return cachedMembers;
+        }
+        List<LiquidTankBlockEntity> list = new ArrayList<>(cluster.size());
+        for (BlockPos pos : cluster.members()) {
+            if (level.getBlockEntity(pos) instanceof LiquidTankBlockEntity m) list.add(m);
+        }
+        List<LiquidTankBlockEntity> result = list.isEmpty() ? List.of(this) : list;
+        cachedMembers = result;
+        cachedMembersTick = now;
+        cachedMembersCluster = cluster;
+        return result;
     }
 
     /** Invalidate every tank's cached cluster. Called when a tank connects to / disconnects from a

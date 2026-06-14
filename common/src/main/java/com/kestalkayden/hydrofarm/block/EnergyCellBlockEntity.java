@@ -58,6 +58,11 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
     private long cachedClusterEpoch = Long.MIN_VALUE;
     private long cachedClusterTick  = Long.MIN_VALUE;
 
+    /** Per-tick cache of the resolved member BEs — see {@link #clusterMembers()}. */
+    private List<EnergyCellBlockEntity> cachedMembers;
+    private long cachedMembersTick = Long.MIN_VALUE;
+    private Cluster cachedMembersCluster;
+
     public EnergyCellBlockEntity(BlockPos pos, BlockState state) {
         super(HydrofarmRefs.ENERGY_CELL_BE.get(), pos, state);
     }
@@ -196,6 +201,30 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
         cachedClusterEpoch = epoch;
         cachedClusterTick  = now;
         return fresh;
+    }
+
+    /** Resolved cluster member BEs, cached per tick. The loader capability wrappers query the member
+     *  list on every insert/extract/getAmount/getCapacity probe — many times per tick under active
+     *  transfer — and each rebuild is N {@code getBlockEntity} lookups; resolve once per tick instead,
+     *  keyed by the cached {@link Cluster} identity (a topology change yields a fresh Cluster, which
+     *  rebuilds) and the tick. Returns {@code [this]} for a single cell. */
+    public List<EnergyCellBlockEntity> clusterMembers() {
+        if (level == null) return List.of(this);
+        Cluster cluster = findCluster();
+        if (cluster == null || !cluster.isMultiBlock()) return List.of(this);
+        long now = level.getGameTime();
+        if (cachedMembers != null && cachedMembersTick == now && cachedMembersCluster == cluster) {
+            return cachedMembers;
+        }
+        List<EnergyCellBlockEntity> list = new ArrayList<>(cluster.size());
+        for (BlockPos pos : cluster.members()) {
+            if (level.getBlockEntity(pos) instanceof EnergyCellBlockEntity m) list.add(m);
+        }
+        List<EnergyCellBlockEntity> result = list.isEmpty() ? List.of(this) : list;
+        cachedMembers = result;
+        cachedMembersTick = now;
+        cachedMembersCluster = cluster;
+        return result;
     }
 
     public static void bumpClusterEpoch() {

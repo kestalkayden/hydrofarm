@@ -1,10 +1,7 @@
 package com.kestalkayden.hydrofarm.block;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.transfer.ResourceHandler;
@@ -109,16 +106,9 @@ public class LiquidTankFluidHandler extends SnapshotJournal<LiquidTankBlockEntit
         be.restore(snapshot);
     }
 
+    /** The tank cluster's members, resolved + cached per tick on the BE (shared across probes). */
     private List<LiquidTankBlockEntity> clusterMembers() {
-        Level level = be.getLevel();
-        LiquidTankBlockEntity.Cluster cluster = level == null ? null : be.findCluster();
-        if (cluster == null || !cluster.isMultiBlock()) return List.of(be);
-
-        ArrayList<LiquidTankBlockEntity> list = new ArrayList<>(cluster.size());
-        for (BlockPos pos : cluster.members()) {
-            if (level.getBlockEntity(pos) instanceof LiquidTankBlockEntity neighbor) list.add(neighbor);
-        }
-        return list.isEmpty() ? List.of(be) : list;
+        return be.clusterMembers();
     }
 
     private Fluid clusterFluid() {

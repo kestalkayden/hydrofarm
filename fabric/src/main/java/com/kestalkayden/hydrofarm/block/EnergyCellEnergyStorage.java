@@ -1,12 +1,9 @@
 package com.kestalkayden.hydrofarm.block;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
 
 import team.reborn.energy.api.EnergyStorage;
 
@@ -105,15 +102,8 @@ public class EnergyCellEnergyStorage extends SnapshotParticipant<EnergyCellBlock
     // Helpers
     // -----------------------------------------------------------------------------------------
 
+    /** The cell cluster's members, resolved + cached per tick on the BE (shared across probes). */
     private List<EnergyCellBlockEntity> clusterMembers() {
-        Level level = be.getLevel();
-        EnergyCellBlockEntity.Cluster cluster = level == null ? null : be.findCluster();
-        if (cluster == null || !cluster.isMultiBlock()) return List.of(be);
-
-        ArrayList<EnergyCellBlockEntity> list = new ArrayList<>(cluster.size());
-        for (BlockPos pos : cluster.members()) {
-            if (level.getBlockEntity(pos) instanceof EnergyCellBlockEntity neighbor) list.add(neighbor);
-        }
-        return list.isEmpty() ? List.of(be) : list;
+        return be.clusterMembers();
     }
 }
