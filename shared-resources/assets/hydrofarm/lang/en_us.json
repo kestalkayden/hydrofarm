@@ -56,7 +56,7 @@
   "item.hydrofarm.mending_station.tooltip1": "Repairs durability with Liquid XP + power",
   "item.hydrofarm.mending_station.tooltip2": "Pipe in damaged gear — keeps enchantments",
   "item.hydrofarm.hydrofarm_planter": "Hydrofarm Planter",
-  "item.hydrofarm.animal_capture_net": "Animal Capture Net",
+  "item.hydrofarm.animal_capture_net": "Capture Net",
   "item.hydrofarm.animal_capture_net.tooltip.empty": "Empty — right-click an animal to capture",
   "item.hydrofarm.animal_capture_net.tooltip.contains": "Contains: %s",
 

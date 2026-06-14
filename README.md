@@ -28,7 +28,7 @@ turning the results into items, XP, and energy — without dragging in a whole t
 
 ## Animals
 
-- **Animal Capture Net** — scoop up an animal, item and all
+- **Capture Net** — scoop up an animal, item and all
 - **Husbandry Bed** — housed animals produce wool, eggs, and milk on feed + water cycles
 - **Butcher Bed** — a breeding pair sustains a steady drip of that species' slaughter loot and
   Liquid XP; the stock itself is never consumed
