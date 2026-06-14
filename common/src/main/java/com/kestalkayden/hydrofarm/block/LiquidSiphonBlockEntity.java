@@ -17,6 +17,7 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
+import com.kestalkayden.hydrofarm.util.Backoff;
 
 public class LiquidSiphonBlockEntity extends BlockEntity {
 
@@ -45,8 +46,7 @@ public class LiquidSiphonBlockEntity extends BlockEntity {
     private static final int PUSH_RAMP_CAP      = 2;
 
     private int waterMb = 0;
-    private int pushCooldown = 0;
-    private int pushFutileStreak = 0;
+    private final Backoff pushBackoff = new Backoff(PUSH_BASE_COOLDOWN, PUSH_MAX_COOLDOWN, PUSH_RAMP_CAP);
 
     public LiquidSiphonBlockEntity(BlockPos pos, BlockState state) {
         super(HydrofarmRefs.LIQUID_SIPHON_BE.get(), pos, state);
@@ -96,18 +96,12 @@ public class LiquidSiphonBlockEntity extends BlockEntity {
         // before the extraction gate so it keeps draining even on ticks the siphon isn't consuming.
         // Backs off when neighbours are full (FluidNeighbors.push returns mB moved); resets on a
         // successful push. Source consumption below is unaffected.
-        if (waterMb > 0 && t % OUTPUT_INTERVAL == 0) {
-            if (pushCooldown > 0) {
-                pushCooldown -= OUTPUT_INTERVAL;
+        if (waterMb > 0 && t % OUTPUT_INTERVAL == 0 && pushBackoff.ready(OUTPUT_INTERVAL)) {
+            int moved = FluidNeighbors.push(level, pos, Fluids.WATER, Math.min(OUTPUT_RATE, waterMb));
+            if (moved > 0) {
+                pushBackoff.recordMoved();
             } else {
-                int moved = FluidNeighbors.push(level, pos, Fluids.WATER, Math.min(OUTPUT_RATE, waterMb));
-                if (moved > 0) {
-                    pushFutileStreak = 0;
-                } else {
-                    pushFutileStreak++;
-                    pushCooldown = Math.min(PUSH_MAX_COOLDOWN,
-                        PUSH_BASE_COOLDOWN << Math.min(pushFutileStreak - 1, PUSH_RAMP_CAP));
-                }
+                pushBackoff.recordFutile();
             }
         }
 

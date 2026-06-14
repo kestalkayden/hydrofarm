@@ -25,6 +25,7 @@ import net.minecraft.world.level.storage.ValueOutput;
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.HydrofarmPlatform;
 import com.kestalkayden.hydrofarm.platform.ItemApi;
+import com.kestalkayden.hydrofarm.util.Backoff;
 
 /** Server-tick driver for an item pipe terminal — the pump replacement. A single terminal can carry
  *  an independent {@link PipeFace#EXTRACT}/{@link PipeFace#INSERT} port on each of its six faces
@@ -92,8 +93,7 @@ public class ItemPipeTerminalBlockEntity extends BlockEntity {
         };
         public boolean whitelist = true;
         private int milliBuffer = 0;
-        private int idleCooldown = 0;   // ticks until the next probe (adaptive back-off)
-        private int futileStreak = 0;   // consecutive moved==0 attempts; drives the cooldown ramp
+        private final Backoff backoff = new Backoff(BACKOFF_BASE_COOLDOWN, BACKOFF_MAX_COOLDOWN, BACKOFF_RAMP_CAP);
     }
 
     // ---- Menu accessors ------------------------------------------------------------------
@@ -122,37 +122,29 @@ public class ItemPipeTerminalBlockEntity extends BlockEntity {
             FaceData data = faceData(face);
             data.milliBuffer = Math.min(BUFFER_CAP_MILLI, data.milliBuffer + THROUGHPUT_MILLI_PER_TICK);
             if (data.milliBuffer < 1000) continue;                       // not enough budget yet
-            if (topoChanged) { data.idleCooldown = 0; data.futileStreak = 0; }
-            if (data.idleCooldown > 0) { data.idleCooldown--; continue; }  // backing off
+            if (topoChanged) data.backoff.reset();
+            if (!data.backoff.ready()) continue;  // backing off
 
             ItemApi.Endpoint source = sourceCaches.computeIfAbsent(face,
                 f -> HydrofarmPlatform.items().cache(level, pos.relative(f), f.getOpposite())).get();
-            if (source == null) { backoff(data); continue; }
+            if (source == null) { data.backoff.recordFutile(); continue; }
             List<ItemStack> contents = source.contents();                // hoisted: one snapshot per face-tick
-            if (contents.isEmpty()) { backoff(data); continue; }
+            if (contents.isEmpty()) { data.backoff.recordFutile(); continue; }
 
             List<FaceRef> targets = insertFaces(level, pos);
-            if (targets.isEmpty()) { backoff(data); continue; }
+            if (targets.isEmpty()) { data.backoff.recordFutile(); continue; }
 
             int budgetItems = data.milliBuffer / 1000;
             int moved = distributeEvenly(level, source, face, targets, budgetItems,
                 (int) (level.getGameTime() % targets.size()), contents);
             if (moved > 0) {
                 data.milliBuffer -= moved * 1000;
-                data.futileStreak = 0;
-                data.idleCooldown = 0;
+                data.backoff.recordMoved();
                 setChanged();
             } else {
-                backoff(data);   // source had items but nothing fit (all dests full) → back off too
+                data.backoff.recordFutile();   // source had items but nothing fit (all dests full) → back off too
             }
         }
-    }
-
-    /** Ramp an idle/jammed EXTRACT face's re-probe interval (10→20→40 ticks). */
-    private static void backoff(FaceData data) {
-        data.futileStreak++;
-        data.idleCooldown = Math.min(BACKOFF_MAX_COOLDOWN,
-            BACKOFF_BASE_COOLDOWN << Math.min(data.futileStreak - 1, BACKOFF_RAMP_CAP));
     }
 
     /** Splits the per-tick item budget evenly across reachable INSERT faces. Returns total moved.

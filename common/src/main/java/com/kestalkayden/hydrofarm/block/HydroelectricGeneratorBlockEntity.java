@@ -13,6 +13,7 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
+import com.kestalkayden.hydrofarm.util.Backoff;
 
 /** Hydroelectric Generator — consumes water from its internal tank and produces energy into an
  *  internal buffer, exposed to tech-mod cables via the standard energy capability on each loader
@@ -51,8 +52,7 @@ public class HydroelectricGeneratorBlockEntity extends BlockEntity {
     private static final int PUSH_BASE_COOLDOWN = 10;
     private static final int PUSH_MAX_COOLDOWN  = 40;
     private static final int PUSH_RAMP_CAP      = 2;
-    private int pushCooldown = 0;
-    private int pushFutileStreak = 0;
+    private final Backoff pushBackoff = new Backoff(PUSH_BASE_COOLDOWN, PUSH_MAX_COOLDOWN, PUSH_RAMP_CAP);
 
     /** Direct-adjacency water intake: pull from a touching tank/siphon with no pipe (on top of the
      *  pipe network). Rate sits well above the {@code 2.5 mB/tick} burn so a touching tank keeps the
@@ -154,19 +154,13 @@ public class HydroelectricGeneratorBlockEntity extends BlockEntity {
         // Hydrofarm sinks downstream (they also pull, which covers tech generators feeding us). Backs
         // off when nothing accepts (no acceptor / all full) so an unplugged generator doesn't walk the
         // network forever; a successful push (detected via the energyStored drop) resets it.
-        if (energyStored > 0 && now % PUSH_INTERVAL == 0) {
-            if (pushCooldown > 0) {
-                pushCooldown -= PUSH_INTERVAL;
+        if (energyStored > 0 && now % PUSH_INTERVAL == 0 && pushBackoff.ready(PUSH_INTERVAL)) {
+            int before = energyStored;
+            energyNet.push(level, pos, PUSH_RATE);
+            if (energyStored < before) {
+                pushBackoff.recordMoved();
             } else {
-                int before = energyStored;
-                energyNet.push(level, pos, PUSH_RATE);
-                if (energyStored < before) {
-                    pushFutileStreak = 0;
-                } else {
-                    pushFutileStreak++;
-                    pushCooldown = Math.min(PUSH_MAX_COOLDOWN,
-                        PUSH_BASE_COOLDOWN << Math.min(pushFutileStreak - 1, PUSH_RAMP_CAP));
-                }
+                pushBackoff.recordFutile();
             }
         }
         // WORKING lingers past the last production so a marginally-supplied generator (which makes

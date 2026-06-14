@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
+import com.kestalkayden.hydrofarm.util.AnimalNbt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
@@ -223,8 +224,8 @@ public class HusbandryBedBlockEntity extends AbstractClusterBedBlockEntity
             // Baby growth gates harvest: a juvenile sheep can't be sheared, a chick can't lay.
             // While Age < 0, we just tick the entity up (no food consumed, no harvest progress)
             // and skip to the next stall. The cycle restarts cleanly once it becomes adult.
-            if (isBaby(hostNbts[s])) {
-                boolean grewUp = ageBy(hostNbts[s], GROWTH_PER_TICK);
+            if (AnimalNbt.isBaby(hostNbts[s])) {
+                boolean grewUp = AnimalNbt.ageBy(hostNbts[s], GROWTH_PER_TICK);
                 changed = true;
                 if (grewUp) anyAdultTransition = true;
                 continue;
@@ -272,23 +273,6 @@ public class HusbandryBedBlockEntity extends AbstractClusterBedBlockEntity
         }
     }
 
-    /** True if the host NBT represents a baby (Age &lt; 0, vanilla convention for AgeableMob). */
-    private static boolean isBaby(CompoundTag nbt) {
-        if (nbt == null || !nbt.contains("Age")) return false;
-        return nbt.getIntOr("Age", 0) < 0;
-    }
-
-    /** Increment the host's Age field by {@code delta}, capped at 0 (adult). Returns true if
-     *  this tick is the one that brings the host from baby to adult (Age crossed 0). */
-    private static boolean ageBy(CompoundTag nbt, int delta) {
-        if (nbt == null || !nbt.contains("Age")) return false;
-        int oldAge = nbt.getIntOr("Age", 0);
-        if (oldAge >= 0) return false;
-        int newAge = Math.min(0, oldAge + delta);
-        nbt.putInt("Age", newAge);
-        return newAge >= 0;
-    }
-
     /** Cluster-wide gating snapshot, computed once per tick on the OWNER bed and shared by every
      *  member. Members locate the owner via the cached {@link #findCluster()} (which holds only
      *  member POSITIONS — no block-entity resolution) plus one block-entity lookup, then delegate —
@@ -323,7 +307,7 @@ public class HusbandryBedBlockEntity extends AbstractClusterBedBlockEntity
             waterMb += mm.waterMb;   // matches clusterWaterMb(): sum over every member, all subclasses
             if (!(mm instanceof HusbandryBedBlockEntity m)) continue;
             for (int s = 0; s < STALL_COUNT; s++) {
-                if (m.hostTypes[s] != null && !isBaby(m.hostNbts[s])) {
+                if (m.hostTypes[s] != null && !AnimalNbt.isBaby(m.hostNbts[s])) {
                     adults.merge(m.hostTypes[s], 1, Integer::sum);
                 }
             }
@@ -415,7 +399,7 @@ public class HusbandryBedBlockEntity extends AbstractClusterBedBlockEntity
         Map<Identifier, Integer> counts = new HashMap<>();
         for (HusbandryBedBlockEntity m : clusterMembersOfType(HusbandryBedBlockEntity.class)) {
             for (int s = 0; s < STALL_COUNT; s++) {
-                if (m.hostTypes[s] != null && !isBaby(m.hostNbts[s])) {
+                if (m.hostTypes[s] != null && !AnimalNbt.isBaby(m.hostNbts[s])) {
                     counts.merge(m.hostTypes[s], 1, Integer::sum);
                 }
             }

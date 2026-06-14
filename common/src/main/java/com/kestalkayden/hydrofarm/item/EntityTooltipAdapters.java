@@ -94,9 +94,4 @@ public final class EntityTooltipAdapters {
         EntityTooltipAdapter a = ADAPTERS.get(entityType);
         return a == null ? null : a.variant(nbt);
     }
-
-    public static boolean isBaby(CompoundTag nbt) {
-        if (!nbt.contains("Age")) return false;
-        return nbt.getIntOr("Age", 0) < 0;
-    }
 }

@@ -18,6 +18,7 @@ import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.EnergyApi;
 import com.kestalkayden.hydrofarm.platform.EnergyBuffer;
 import com.kestalkayden.hydrofarm.platform.HydrofarmPlatform;
+import com.kestalkayden.hydrofarm.util.Backoff;
 
 /** Per-block helper that pulls energy from the connected {@link EnergyPipeBlock} network into an
  *  {@link EnergyBuffer} (the sink-pull model — cables are passive). Walks the cable network from the
@@ -44,8 +45,7 @@ public final class EnergyNetwork {
     private Map<Source, EnergyApi.EndpointCache> endpointCaches = new HashMap<>();
     private EnergyApi.EndpointCache selfCache;
 
-    private int pullSkip = 0;
-    private int pullFutileStreak = 0;
+    private final Backoff pullBackoff = new Backoff(1, 1 << PULL_RAMP_CAP, PULL_RAMP_CAP);
     private long pullEpoch = Long.MIN_VALUE;
 
     private record Source(BlockPos pos, Direction side) {}
@@ -71,8 +71,7 @@ public final class EnergyNetwork {
     public void pull(ServerLevel level, BlockPos pos, EnergyBuffer buffer, int maxPerPull) {
         int room = buffer.getEnergyCapacity() - buffer.getEnergyStored();
         if (room <= 0) {            // buffer full — well supplied; clear back-off so a fresh drain re-probes at once
-            pullSkip = 0;
-            pullFutileStreak = 0;
+            pullBackoff.reset();
             return;
         }
 
@@ -81,10 +80,9 @@ public final class EnergyNetwork {
         long epoch = TransportNetwork.epoch();
         if (epoch != pullEpoch) {
             pullEpoch = epoch;
-            pullSkip = 0;
-            pullFutileStreak = 0;
+            pullBackoff.reset();
         }
-        if (pullSkip > 0) { pullSkip--; return; }
+        if (!pullBackoff.ready()) return;
 
         int moved = 0;
         List<Source> sources = sources(level, pos);
@@ -104,10 +102,9 @@ public final class EnergyNetwork {
         }
 
         if (moved > 0) {
-            pullFutileStreak = 0;
+            pullBackoff.recordMoved();
         } else {
-            pullFutileStreak++;
-            pullSkip = 1 << Math.min(pullFutileStreak - 1, PULL_RAMP_CAP);
+            pullBackoff.recordFutile();
         }
     }
 

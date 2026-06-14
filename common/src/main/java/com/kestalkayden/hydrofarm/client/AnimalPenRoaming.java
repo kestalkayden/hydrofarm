@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kestalkayden.hydrofarm.block.AbstractClusterBedBlockEntity.Cluster;
+import com.kestalkayden.hydrofarm.util.AnimalNbt;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -132,7 +133,7 @@ public final class AnimalPenRoaming {
     public Entity drivenPuppet(BlockPos home, int stall, Identifier type, CompoundTag nbt,
                                 RoamPose rp, Level level, long gameTime) {
         Agent a = agent(home.asLong(), stall, gameTime);
-        boolean baby = isBabyNbt(nbt);
+        boolean baby = AnimalNbt.isBaby(nbt);
         if (a.entity == null || !type.equals(a.type) || baby != a.baby) {
             a.entity = rebuildEntity(level, type, nbt);
             a.type = type;
@@ -152,7 +153,7 @@ public final class AnimalPenRoaming {
         BedAgents ba = cache.get(home.asLong());
         if (ba == null || stall < 0 || stall >= MAX_STALLS) return false;
         Agent a = ba.stalls[stall];
-        return a != null && a.entity != null && type.equals(a.type) && isBabyNbt(nbt) == a.baby;
+        return a != null && a.entity != null && type.equals(a.type) && AnimalNbt.isBaby(nbt) == a.baby;
     }
 
     /** Drop every cached agent/puppet (used when puppet rendering is config-toggled off, so the
@@ -294,12 +295,6 @@ public final class AnimalPenRoaming {
     }
 
     // ---- Entity reconstruction ------------------------------------------------------------------
-
-    /** Vanilla baby convention: AgeableMob stores age as a negative int, counting up toward 0. */
-    private static boolean isBabyNbt(CompoundTag nbt) {
-        if (nbt == null || !nbt.contains("Age")) return false;
-        return nbt.getIntOr("Age", 0) < 0;
-    }
 
     /** Rebuild a transient render-only entity from the stored host NBT. Tries an NBT load first
      *  (preserves sheep wool colour, names, etc.); on failure — common for 26.1's new-variant

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.kestalkayden.hydrofarm.HydrofarmConfig;
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
+import com.kestalkayden.hydrofarm.util.AnimalNbt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
@@ -182,7 +183,7 @@ public class ButcherBedBlockEntity extends AbstractClusterBedBlockEntity
         boolean transition = false;
         for (int s = 0; s < STALL_COUNT; s++) {
             if (hostTypes[s] == null) continue;
-            if (isBaby(hostNbts[s]) && ageBy(hostNbts[s], GROWTH_PER_TICK)) transition = true;
+            if (AnimalNbt.isBaby(hostNbts[s]) && AnimalNbt.ageBy(hostNbts[s], GROWTH_PER_TICK)) transition = true;
         }
         if (transition) {
             setChanged();
@@ -246,23 +247,6 @@ public class ButcherBedBlockEntity extends AbstractClusterBedBlockEntity
         }
     }
 
-    /** True if the host NBT represents a baby (Age &lt; 0). */
-    private static boolean isBaby(CompoundTag nbt) {
-        if (nbt == null || !nbt.contains("Age")) return false;
-        return nbt.getIntOr("Age", 0) < 0;
-    }
-
-    /** Increment the host's Age field by {@code delta}, capped at 0. Returns true if this tick
-     *  is the one that brings the host from baby to adult. */
-    private static boolean ageBy(CompoundTag nbt, int delta) {
-        if (nbt == null || !nbt.contains("Age")) return false;
-        int oldAge = nbt.getIntOr("Age", 0);
-        if (oldAge >= 0) return false;
-        int newAge = Math.min(0, oldAge + delta);
-        nbt.putInt("Age", newAge);
-        return newAge >= 0;
-    }
-
     private boolean hasFoodInCluster(ButcherAnimal animal) {
         for (AbstractClusterBedBlockEntity m : clusterMembers()) {
             for (int i = 0; i < m.getItems().size(); i++) {
@@ -320,7 +304,7 @@ public class ButcherBedBlockEntity extends AbstractClusterBedBlockEntity
         for (AbstractClusterBedBlockEntity mm : clusterMembers()) {
             if (!(mm instanceof ButcherBedBlockEntity m)) continue;
             for (int s = 0; s < STALL_COUNT; s++) {
-                if (m.hostTypes[s] != null && !isBaby(m.hostNbts[s])) {
+                if (m.hostTypes[s] != null && !AnimalNbt.isBaby(m.hostNbts[s])) {
                     if (counts == null) counts = new HashMap<>();
                     counts.merge(m.hostTypes[s], 1, Integer::sum);
                 }

@@ -37,6 +37,8 @@ import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.storage.TagValueOutput;
 
+import com.kestalkayden.hydrofarm.util.AnimalNbt;
+
 /** Reusable capture-and-release item. Empty net + right-click on a capturable entity stores
  *  the entity's full NBT in a data component and removes it from the world. Filled net +
  *  right-click on a block face spawns the entity on top of that block and empties the net.
@@ -174,7 +176,7 @@ public class AnimalCaptureNetItem extends Item {
         CompoundTag nbt = captured.entityNbt();
         Component variant = EntityTooltipAdapters.variantFor(captured.entityType(), nbt);
         Component customName = readCustomName(context, nbt);
-        boolean baby = EntityTooltipAdapters.isBaby(nbt);
+        boolean baby = AnimalNbt.isBaby(nbt);
 
         MutableComponent contents = Component.empty();
         if (customName != null) {

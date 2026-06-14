@@ -27,6 +27,7 @@ import net.minecraft.world.level.storage.ValueOutput;
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.FluidApi;
 import com.kestalkayden.hydrofarm.platform.HydrofarmPlatform;
+import com.kestalkayden.hydrofarm.util.Backoff;
 
 /** Server-tick driver for a liquid pipe terminal — the fluid pump replacement. The fluid twin of
  *  {@link ItemPipeTerminalBlockEntity}: each {@link PipeFace#EXTRACT} face moves fluid from its
@@ -94,8 +95,7 @@ public class LiquidPipeTerminalBlockEntity extends BlockEntity {
         };
         public boolean whitelist = true;
         private int bufferMb = 0;
-        private int idleCooldown = 0;   // ticks until the next probe (adaptive back-off)
-        private int futileStreak = 0;   // consecutive moved==0 attempts; drives the cooldown ramp
+        private final Backoff backoff = new Backoff(BACKOFF_BASE_COOLDOWN, BACKOFF_MAX_COOLDOWN, BACKOFF_RAMP_CAP);
     }
 
     // ---- Menu accessors ------------------------------------------------------------------
@@ -122,15 +122,15 @@ public class LiquidPipeTerminalBlockEntity extends BlockEntity {
             FaceData data = faceData(face);
             data.bufferMb = Math.min(BUFFER_CAP_MB, data.bufferMb + THROUGHPUT_MB_PER_TICK);
             if (data.bufferMb < BURST_THRESHOLD_MB) continue;            // not enough budget yet
-            if (topoChanged) { data.idleCooldown = 0; data.futileStreak = 0; }
-            if (data.idleCooldown > 0) { data.idleCooldown--; continue; }  // backing off
+            if (topoChanged) data.backoff.reset();
+            if (!data.backoff.ready()) continue;  // backing off
 
             FluidApi.Endpoint source = sourceCaches.computeIfAbsent(face,
                 f -> HydrofarmPlatform.fluids().cache(level, pos.relative(f), f.getOpposite())).get();
-            if (source == null || source.fluids().isEmpty()) { backoff(data); continue; }
+            if (source == null || source.fluids().isEmpty()) { data.backoff.recordFutile(); continue; }
 
             List<FaceRef> targets = insertFaces(level, pos);
-            if (targets.isEmpty()) { backoff(data); continue; }
+            if (targets.isEmpty()) { data.backoff.recordFutile(); continue; }
 
             // Candidate fluids are the same for every target this burst — resolve once (water-first
             // legacy priority, then whatever else the source holds) instead of per target.
@@ -146,20 +146,12 @@ public class LiquidPipeTerminalBlockEntity extends BlockEntity {
             }
             if (moved > 0) {
                 data.bufferMb -= moved;   // a coarse pull can push this negative; the accrual repays it
-                data.futileStreak = 0;
-                data.idleCooldown = 0;
+                data.backoff.recordMoved();
                 setChanged();
             } else {
-                backoff(data);   // nothing moved (empty/coarse source with full or undersized dests)
+                data.backoff.recordFutile();   // nothing moved (empty/coarse source with full or undersized dests)
             }
         }
-    }
-
-    /** Ramp an idle/jammed EXTRACT face's re-probe interval (10→20→40 ticks). */
-    private static void backoff(FaceData data) {
-        data.futileStreak++;
-        data.idleCooldown = Math.min(BACKOFF_MAX_COOLDOWN,
-            BACKOFF_BASE_COOLDOWN << Math.min(data.futileStreak - 1, BACKOFF_RAMP_CAP));
     }
 
     /** Water first (legacy priority), then any other distinct non-empty fluid the source holds. */
