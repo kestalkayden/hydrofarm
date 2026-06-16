@@ -10,7 +10,7 @@ neoForge {
     // Vanilla-mode: compile shared code against NeoForm-provided Minecraft (official Mojang
     // names — the same names both Loom and NeoForge see in 26.1) with no loader code. This lets
     // all platform-agnostic gameplay logic live here once and link cleanly into both jars.
-    neoFormVersion = "26.2-rc-2-1"
+    neoFormVersion = "26.2-1"
     validateAccessTransformers = false
 }
 
