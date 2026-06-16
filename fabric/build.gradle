@@ -34,7 +34,7 @@ dependencies {
     // Jade — compile-only. Players still need Jade installed at runtime for the tooltip to
     // show; our plugin class is loaded only when Jade detects it via the "jade" entrypoint.
     // Pulled from Modrinth maven so CI builds without a local jar in run/mods.
-    compileOnly "maven.modrinth:jade:26.1.0+fabric"
+    compileOnly "maven.modrinth:jade:26.2.0+fabric"
 
     // ModMenu — compile-only, same pattern: the "modmenu" entrypoint gives the mod list a
     // Configure button (opening the shared HydrofarmConfigScreen) when ModMenu is installed.

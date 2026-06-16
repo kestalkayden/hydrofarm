@@ -27,7 +27,7 @@ repositories {
 dependencies {
     // Jade — compile-only, soft dependency. The shared Jade plugin/providers live in :common so both
     // loaders get them; each loader pulls its own Jade jar at compile time (see fabric/neoforge).
-    compileOnly "maven.modrinth:jade:26.1.1+neoforge"
+    compileOnly "maven.modrinth:jade:26.2.0+fabric"
 }
 
 tasks.withType(JavaCompile).configureEach {

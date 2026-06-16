@@ -333,6 +333,10 @@ public final class AnimalPenRoaming {
     /** Zero an entity's position, motion, and rotations (current AND old) so its first rendered
      *  frame has no interpolation to resolve — {@link #drive} then sets the live values each frame. */
     private static void stabilize(Entity e) {
+        // MC 26.2 render-state extraction reads Entity.getId() (via ItemModelResolver.updateForLiving),
+        // which throws on an off-world puppet that never had an id assigned. Give it a dummy id so the
+        // decorative puppet extracts/renders instead of failing every frame.
+        e.setId(1);
         e.setPos(0, 0, 0);
         e.setDeltaMovement(0, 0, 0);
         e.setYRot(0);
