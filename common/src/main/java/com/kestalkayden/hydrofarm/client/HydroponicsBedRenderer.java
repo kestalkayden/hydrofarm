@@ -139,7 +139,7 @@ public class HydroponicsBedRenderer
             pose.translate(ORIGINS[q][0], ORIGINS[q][1], ORIGINS[q][2]);
             pose.scale(SCALE_XZ, SCALE_Y, SCALE_XZ);
 
-            collector.submitBlockModel(pose, Sheets.cutoutBlockSheet(), parts, NO_TINT,
+            collector.submitBlockModel(pose, net.minecraft.client.renderer.rendertype.RenderTypes.cutoutMovingBlock(), parts, NO_TINT,
                 state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
 
             pose.popPose();

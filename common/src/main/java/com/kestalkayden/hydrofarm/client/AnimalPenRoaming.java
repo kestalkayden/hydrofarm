@@ -304,7 +304,9 @@ public final class AnimalPenRoaming {
         if (level == null) return null;
         Entity loaded = null;
         try {
-            loaded = EntityType.loadEntityRecursive(nbt, level, EntitySpawnReason.LOAD, e -> {
+            var in = net.minecraft.world.level.storage.TagValueInput.create(
+                net.minecraft.util.ProblemReporter.DISCARDING, level.registryAccess(), nbt);
+            loaded = EntityType.loadEntityRecursive(in, level, EntitySpawnReason.LOAD, e -> {
                 stabilize(e);
                 return e;
             });

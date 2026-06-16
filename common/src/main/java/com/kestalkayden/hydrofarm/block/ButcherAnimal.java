@@ -117,7 +117,7 @@ public final class ButcherAnimal {
             item -> item == Items.WHEAT,
             Items.WHEAT,
             16 * 60 * TICKS_PER_SECOND,
-            (nbt, rng) -> stacks(rand(rng, 1, 2), Items.MUTTON, 1, Items.WHITE_WOOL),
+            (nbt, rng) -> stacks(rand(rng, 1, 2), Items.MUTTON, 1, Items.WOOL.white()),
             24, 150));
 
         // Chicken cull: 10 min, 1 chicken meat + 1 feather + 12 mB XP (smallest yield, matches

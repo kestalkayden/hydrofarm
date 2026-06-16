@@ -380,7 +380,9 @@ public class ButcherBedBlockEntity extends AbstractClusterBedBlockEntity
             if (hostTypes[s] == null) continue;
             CompoundTag nbt = hostNbts[s];
             try {
-                Entity spawned = EntityType.loadEntityRecursive(nbt, level, EntitySpawnReason.LOAD, e -> {
+                var in = net.minecraft.world.level.storage.TagValueInput.create(
+                    net.minecraft.util.ProblemReporter.DISCARDING, level.registryAccess(), nbt);
+                Entity spawned = EntityType.loadEntityRecursive(in, level, EntitySpawnReason.LOAD, e -> {
                     e.setPos(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
                     return e;
                 });

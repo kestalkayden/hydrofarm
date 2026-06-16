@@ -97,7 +97,7 @@ public class AutocrafterRenderer implements BlockEntityRenderer<AutocrafterBlock
         if (state.mask != 0) {
             final int light = FULLBRIGHT;
             final float u0 = sprite.getU0(), v0 = sprite.getV0(), u1 = sprite.getU1(), v1 = sprite.getV1();
-            collector.submitCustomGeometry(pose, Sheets.translucentBlockSheet(), (poseEntry, vc) -> {
+            collector.submitCustomGeometry(pose, net.minecraft.client.renderer.rendertype.RenderTypes.translucentMovingBlock(), (poseEntry, vc) -> {
                 Matrix4f mat = poseEntry.pose();
                 for (int slot = 0; slot < GRID * GRID; slot++) {
                     if ((state.mask & (1 << slot)) == 0) continue;

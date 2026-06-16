@@ -84,40 +84,24 @@ public final class HusbandryAnimal {
     /** Sheep wool color matches the captured sheep's NBT-stored Color byte (0–15 = DyeColor
      *  index). Falls back to white if the tag is missing — keeps un-tinted sheep working. */
     private static Item woolForSheep(CompoundTag nbt) {
-        if (nbt == null) return Items.WHITE_WOOL;
+        if (nbt == null) return Items.WOOL.white();
         try {
             // MC 26.1 — entity NBT stores "Color" as a byte. The exact accessor varies, so
             // try the standard CompoundTag.getByte path. Other code paths might fail; the
             // try-catch keeps unknown sheep producing white wool rather than crashing.
-            if (!nbt.contains("Color")) return Items.WHITE_WOOL;
+            if (!nbt.contains("Color")) return Items.WOOL.white();
             byte b = nbt.getByteOr("Color", (byte) 0);
             DyeColor color = DyeColor.byId(b & 0xFF);
             return woolForColor(color);
         } catch (Throwable t) {
-            return Items.WHITE_WOOL;
+            return Items.WOOL.white();
         }
     }
 
     private static Item woolForColor(DyeColor color) {
-        if (color == null) return Items.WHITE_WOOL;
-        return switch (color) {
-            case WHITE      -> Items.WHITE_WOOL;
-            case ORANGE     -> Items.ORANGE_WOOL;
-            case MAGENTA    -> Items.MAGENTA_WOOL;
-            case LIGHT_BLUE -> Items.LIGHT_BLUE_WOOL;
-            case YELLOW     -> Items.YELLOW_WOOL;
-            case LIME       -> Items.LIME_WOOL;
-            case PINK       -> Items.PINK_WOOL;
-            case GRAY       -> Items.GRAY_WOOL;
-            case LIGHT_GRAY -> Items.LIGHT_GRAY_WOOL;
-            case CYAN       -> Items.CYAN_WOOL;
-            case PURPLE     -> Items.PURPLE_WOOL;
-            case BLUE       -> Items.BLUE_WOOL;
-            case BROWN      -> Items.BROWN_WOOL;
-            case GREEN      -> Items.GREEN_WOOL;
-            case RED        -> Items.RED_WOOL;
-            case BLACK      -> Items.BLACK_WOOL;
-        };
+        // MC 26.2 consolidated the 16 Items.<COLOR>_WOOL constants into the Items.WOOL
+        // ColorCollection; pick(DyeColor) returns the matching wool item.
+        return Items.WOOL.pick(color == null ? DyeColor.WHITE : color);
     }
 
     private static boolean isAnySeed(Item item) {
@@ -164,7 +148,7 @@ public final class HusbandryAnimal {
         // Water-gated like the others (bees drink too). Honeycomb feeds the Glowcube light line.
         register(new HusbandryAnimal(
             mc("bee"),
-            item -> item == Items.BONE_MEAL || item.builtInRegistryHolder().is(ItemTags.FLOWERS),
+            item -> item == Items.BONE_MEAL || item.builtInRegistryHolder().is(ItemTags.BEE_FOOD),
             Items.BONE_MEAL,
             240 * TICKS_PER_SECOND,
             (nbt, rng) -> List.of(new ItemStack(Items.HONEYCOMB)),

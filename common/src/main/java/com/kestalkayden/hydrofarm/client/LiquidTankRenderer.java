@@ -194,7 +194,7 @@ public class LiquidTankRenderer implements BlockEntityRenderer<LiquidTankBlockEn
         final int r = state.colorR, g = state.colorG, b = state.colorB;
         final int a = state.colorA;
 
-        collector.submitCustomGeometry(pose, Sheets.translucentBlockSheet(), (poseEntry, vc) -> {
+        collector.submitCustomGeometry(pose, net.minecraft.client.renderer.rendertype.RenderTypes.translucentMovingBlock(), (poseEntry, vc) -> {
             Matrix4f mat = poseEntry.pose();
 
             if (state.drawTopQuad) {

@@ -115,8 +115,10 @@ public class AnimalCaptureNetItem extends Item {
         ServerLevel level = (ServerLevel) context.getLevel();
         BlockPos spawnPos = context.getClickedPos().relative(context.getClickedFace());
 
-        // EntityType.loadEntityRecursive reconstructs from the stored "id" + state tag.
-        Entity spawned = EntityType.loadEntityRecursive(captured.entityNbt(), level, EntitySpawnReason.LOAD, e -> {
+        // MC 26.2 routes entity load through ValueInput, rebuilt from the stored "id" + state tag.
+        var in = net.minecraft.world.level.storage.TagValueInput.create(
+            net.minecraft.util.ProblemReporter.DISCARDING, level.registryAccess(), captured.entityNbt());
+        Entity spawned = EntityType.loadEntityRecursive(in, level, EntitySpawnReason.LOAD, e -> {
             e.setPos(
                 spawnPos.getX() + 0.5,
                 spawnPos.getY(),

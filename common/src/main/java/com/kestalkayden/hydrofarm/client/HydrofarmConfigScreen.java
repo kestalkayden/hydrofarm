@@ -116,7 +116,7 @@ public class HydrofarmConfigScreen extends Screen {
         applyInt(particleCount, HydrofarmConfig::setSprinklerParticleCount);
         applyInt(particleInterval, HydrofarmConfig::setSprinklerParticleInterval);
         HydrofarmConfig.save();
-        minecraft.setScreen(parent);
+        minecraft.setScreenAndShow(parent);
     }
 
     private static void applyInt(EditBox box, java.util.function.IntConsumer setter) {

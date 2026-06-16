@@ -38,7 +38,7 @@ dependencies {
 
     // ModMenu — compile-only, same pattern: the "modmenu" entrypoint gives the mod list a
     // Configure button (opening the shared HydrofarmConfigScreen) when ModMenu is installed.
-    compileOnly "maven.modrinth:modmenu:18.0.0-beta.1"
+    compileOnly "maven.modrinth:modmenu:20.0.0-beta.2"
 
     // Team Reborn Energy — the Fabric energy standard (used by TechReborn, Modern Industrialization,
     // etc.). Bundled jar-in-jar via `include` so it's always present and no tech mod is required at
