@@ -31,7 +31,6 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -103,13 +102,12 @@ public final class HydrofarmNeoForge {
         NeoForge.EVENT_BUS.addListener(HydrofarmNeoForge::onLevelTick);
 
         if (FMLEnvironment.getDist() == Dist.CLIENT) {
-            modBus.addListener(HydrofarmNeoForge::onRegisterRenderers);
-            modBus.addListener(HydrofarmNeoForge::onRegisterMenuScreens);
-            // Config button on the Mods screen — the NeoForge twin of the Fabric ModMenu
-            // entrypoint, opening the same shared config screen.
-            container.registerExtensionPoint(
-                net.neoforged.neoforge.client.gui.IConfigScreenFactory.class,
-                (c, parent) -> new com.kestalkayden.hydrofarm.client.HydrofarmConfigScreen(parent));
+            // All client wiring is isolated in HydrofarmNeoForgeClient. This call is the ONLY
+            // reference to it, and it sits behind the Dist guard — so the dedicated server, where
+            // method resolution is lazy, never loads or verifies that class (and the vanilla
+            // client classes it touches). Inlining any of it here would crash the server at link
+            // time. See HydrofarmNeoForgeClient for the full explanation.
+            com.kestalkayden.hydrofarm.client.HydrofarmNeoForgeClient.init(modBus, container);
         }
     }
 
@@ -145,40 +143,6 @@ public final class HydrofarmNeoForge {
         if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel level) {
             com.kestalkayden.hydrofarm.block.RepulserField.sweep(level);
         }
-    }
-
-    private static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerBlockEntityRenderer(HydrofarmBlockEntities.LIQUID_TANK_BE,
-            com.kestalkayden.hydrofarm.client.LiquidTankRenderer::new);
-        event.registerBlockEntityRenderer(HydrofarmBlockEntities.HYDROPONICS_BED_BE,
-            com.kestalkayden.hydrofarm.client.HydroponicsBedRenderer::new);
-        event.registerBlockEntityRenderer(HydrofarmBlockEntities.TREE_FARM_BED_BE,
-            com.kestalkayden.hydrofarm.client.HydroponicsBedRenderer::new);
-        event.registerBlockEntityRenderer(HydrofarmBlockEntities.HUSBANDRY_BED_BE,
-            com.kestalkayden.hydrofarm.client.AnimalBedRenderer::new);
-        event.registerBlockEntityRenderer(HydrofarmBlockEntities.BUTCHER_BED_BE,
-            com.kestalkayden.hydrofarm.client.AnimalBedRenderer::new);
-        event.registerBlockEntityRenderer(HydrofarmBlockEntities.AUTOCRAFTER_BE,
-            com.kestalkayden.hydrofarm.client.AutocrafterRenderer::new);
-        event.registerBlockEntityRenderer(HydrofarmBlockEntities.MENDING_STATION_BE,
-            com.kestalkayden.hydrofarm.client.MendingStationRenderer::new);
-    }
-
-    /** Client-only screen registration via NeoForge's RegisterMenuScreensEvent — vanilla
-     *  MenuScreens.register is private. */
-    private static void onRegisterMenuScreens(net.neoforged.neoforge.client.event.RegisterMenuScreensEvent event) {
-        event.register(HydrofarmMenus.HYDROPONICS_BED.get(),
-            com.kestalkayden.hydrofarm.client.HydroponicsBedScreen::new);
-        event.register(HydrofarmMenus.ANIMAL_BED.get(),
-            com.kestalkayden.hydrofarm.client.AnimalBedScreen::new);
-        event.register(HydrofarmMenus.AUTOCRAFTER.get(),
-            com.kestalkayden.hydrofarm.client.AutocrafterScreen::new);
-        event.register(HydrofarmMenus.ITEM_TERMINAL.get(),
-            com.kestalkayden.hydrofarm.client.ItemTerminalScreen::new);
-        event.register(HydrofarmMenus.LIQUID_TERMINAL.get(),
-            com.kestalkayden.hydrofarm.client.LiquidTerminalScreen::new);
-        event.register(HydrofarmMenus.MENDING_STATION.get(),
-            com.kestalkayden.hydrofarm.client.MendingStationScreen::new);
     }
 
     private static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {
