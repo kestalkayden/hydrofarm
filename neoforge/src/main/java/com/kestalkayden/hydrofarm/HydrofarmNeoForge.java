@@ -64,7 +64,12 @@ public final class HydrofarmNeoForge {
                 output.accept(HydrofarmBlocks.REPULSER_ITEM.get());
                 output.accept(HydrofarmBlocks.MENDING_STATION_ITEM.get());
                 output.accept(HydrofarmBlocks.ENERGY_CELL_ITEM.get());
-                for (var glowcube : HydrofarmBlocks.GLOWCUBE_ITEMS) output.accept(glowcube.get());
+                // Defer glowcubes to the standalone Glow Cubes mod when present — same pattern as the
+                // Capture Net below: blocks stay registered (placed blocks survive), but they're
+                // hidden from creative and their recipes disabled (see recipe JSONs).
+                if (!ModList.get().isLoaded("glowcubes")) {
+                    for (var glowcube : HydrofarmBlocks.GLOWCUBE_ITEMS) output.accept(glowcube.get());
+                }
                 output.accept(HydrofarmBlocks.HYDROFARM_PLANTER_ITEM.get());
                 // Defer the Animal Capture Net to the standalone Capture Net mod when present.
                 // The item stays registered so existing inventories survive, but it's hidden

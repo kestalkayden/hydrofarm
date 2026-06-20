@@ -187,7 +187,12 @@ public final class HydrofarmFabric implements ModInitializer {
                     output.accept(HydrofarmBlocks.REPULSER_ITEM);
                     output.accept(HydrofarmBlocks.MENDING_STATION_ITEM);
                     output.accept(HydrofarmBlocks.ENERGY_CELL_ITEM);
-                    for (var glowcube : HydrofarmBlocks.GLOWCUBE_ITEMS) output.accept(glowcube);
+                    // Defer glowcubes to the standalone Glow Cubes mod when present — same pattern as
+                    // the Capture Net below: blocks stay registered (placed blocks survive), but
+                    // they're hidden from creative and their recipes disabled (see recipe JSONs).
+                    if (!FabricLoader.getInstance().isModLoaded("glowcubes")) {
+                        for (var glowcube : HydrofarmBlocks.GLOWCUBE_ITEMS) output.accept(glowcube);
+                    }
                     output.accept(HydrofarmBlocks.HYDROFARM_PLANTER_ITEM);
                     // Defer the Animal Capture Net to the standalone Capture Net mod when present.
                     // The item stays registered so existing inventories survive, but it's hidden
