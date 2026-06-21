@@ -69,7 +69,7 @@ public class HydroelectricGeneratorBlockEntity extends BlockEntity {
     private long lastGenTick = Long.MIN_VALUE;
 
     /** Cached loader-specific capability wrappers (Fabric Storage/EnergyStorage, NeoForge
-     *  ResourceHandler/IEnergyStorage). Held as Object and built via a loader-supplied factory,
+     *  ResourceHandler/EnergyHandler). Held as Object and built via a loader-supplied factory,
      *  mirroring {@link LiquidTankBlockEntity#fluidExposure}. One instance per BE keeps a wrapper's
      *  transaction snapshots consistent across calls. */
     private Object fluidExposure;
