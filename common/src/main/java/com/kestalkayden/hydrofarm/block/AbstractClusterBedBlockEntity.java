@@ -787,6 +787,10 @@ public abstract class AbstractClusterBedBlockEntity extends BlockEntity implemen
                 return;
             }
         }
+        // No same-block neighbor: this was the last bed of its cluster, so there is nowhere to hand
+        // the pooled contents off to. Freed items drop on the ground; the pooled water and Liquid XP
+        // are lost here — they have no item form to drop, matching the documented fluid-loss-on-
+        // isolated-break of LiquidTankBlockEntity#preRemoveSideEffects.
         for (ItemStack drop : freedItems) {
             Containers.dropItemStack(level,
                 pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop);

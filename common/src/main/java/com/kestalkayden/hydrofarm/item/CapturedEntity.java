@@ -11,8 +11,8 @@ import net.minecraft.resources.Identifier;
 
 /** State of one entity stored inside an Animal Capture Net.
  *  - {@code entityType}: the Identifier of the captured entity type (e.g. "minecraft:sheep").
- *  - {@code entityNbt}: the entity's saveWithoutId NBT, preserving color/name/age/tame state
- *    and any modded NBT extensions transparently.
+ *  - {@code entityNbt}: the entity's full save NBT (includes the type id), preserving
+ *    color/name/age/tame state and any modded NBT extensions transparently.
  *
  *  Stored on the net's ItemStack as a DataComponent. Absence of the component means the net
  *  is empty. */
