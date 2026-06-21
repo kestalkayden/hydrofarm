@@ -96,9 +96,10 @@ public class XpDrainBlockEntity extends BlockEntity {
     }
 
     /** Push directly from each sneaking player into the first available fluid-capable neighbor.
-     *  XP moves in whole points ({@link #MB_PER_XP} each); if the target only accepts a sub-XP
-     *  remainder, the deposit is undone (extract-back) so the player keeps their XP rather than
-     *  losing a fractional point. Only invoked when FACING=UP. */
+     *  XP moves in whole points ({@link #MB_PER_XP} each); any sub-XP remainder the target accepts
+     *  (the insert capped on room that isn't a whole-point multiple) is undone (extract-back), so the
+     *  player is charged for exactly the whole points banked and no fluid is minted. Only invoked
+     *  when FACING=UP. */
     private void drainFromPlayersAbove(ServerLevel level, BlockPos pos, Direction facing) {
         FluidApi.Endpoint target = findTarget(level, pos, facing);
         if (target == null) return;
@@ -113,18 +114,18 @@ public class XpDrainBlockEntity extends BlockEntity {
             int insertedMb = target.insert(xp, XP_PER_DRAIN_CYCLE * MB_PER_XP);
             if (insertedMb <= 0) continue;
             int actualXp = insertedMb / MB_PER_XP;
-            if (actualXp > 0) {
-                p.giveExperiencePoints(-actualXp);
-            } else {
-                // Only a sub-XP remainder fit — undo so we never bank fluid the player didn't pay for.
-                target.extract(xp, insertedMb);
-            }
+            // Undo any sub-XP remainder so we never bank fluid the player didn't pay for — whether
+            // the whole insert was sub-XP (actualXp == 0) or just the leftover above a whole point.
+            int remainderMb = insertedMb - actualXp * MB_PER_XP;
+            if (remainderMb > 0) target.extract(xp, remainderMb);
+            if (actualXp > 0) p.giveExperiencePoints(-actualXp);
         }
     }
 
     /** Right-click: pull Liquid XP from the connected tank back to the player as XP points.
-     *  Works on any facing — uses the block's FACING to know which side is "back". A sub-XP
-     *  remainder is returned to the tank so no fluid is destroyed for zero XP. */
+     *  Works on any facing — uses the block's FACING to know which side is "back". Any sub-XP
+     *  remainder of the pull is returned to the tank so no fluid is ever destroyed at the
+     *  whole-point boundary. */
     public int returnXpToPlayer(ServerLevel level, BlockPos pos, Player player) {
         Direction facing = level.getBlockState(pos).getValue(XpDrainBlock.FACING);
         FluidApi.Endpoint source = findTarget(level, pos, facing);
@@ -134,11 +135,11 @@ public class XpDrainBlockEntity extends BlockEntity {
         int extractedMb = source.extract(xp, XP_PER_CLICK_CAP * MB_PER_XP);
         if (extractedMb == 0) return 0;
         int xpPoints = extractedMb / MB_PER_XP;
-        if (xpPoints > 0) {
-            player.giveExperiencePoints(xpPoints);
-            return xpPoints;
-        }
-        source.insert(xp, extractedMb);
-        return 0;
+        // Return any sub-XP remainder so a non-multiple-of-20 pull never destroys Liquid XP. The
+        // source just gave up extractedMb, so there is always room to take the remainder back.
+        int remainderMb = extractedMb - xpPoints * MB_PER_XP;
+        if (remainderMb > 0) source.insert(xp, remainderMb);
+        if (xpPoints > 0) player.giveExperiencePoints(xpPoints);
+        return xpPoints;
     }
 }
