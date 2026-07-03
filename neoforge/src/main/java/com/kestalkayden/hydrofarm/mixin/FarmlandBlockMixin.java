@@ -1,6 +1,5 @@
 package com.kestalkayden.hydrofarm.mixin;
 
-import com.kestalkayden.hydrofarm.block.HydrofarmBlocks;
 import com.kestalkayden.hydrofarm.block.SprinklerBlockEntity;
 
 import net.minecraft.core.BlockPos;
@@ -8,7 +7,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FarmlandBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,16 +33,10 @@ public abstract class FarmlandBlockMixin {
         }
     }
 
-    /** First sprinkler with water remaining within vanilla's water-scan box, or null. */
+    /** Delegates to the sprinkler position index instead of scanning a 162-block getBlockState box
+     *  on every farmland decay tick — see {@link SprinklerBlockEntity#wateredSprinklerNear}. */
     @Unique
     private static SprinklerBlockEntity hydrofarm$findWateredSprinkler(ServerLevel level, BlockPos pos) {
-        for (BlockPos p : BlockPos.betweenClosed(pos.offset(-4, 0, -4), pos.offset(4, 1, 4))) {
-            if (!level.getBlockState(p).is(HydrofarmBlocks.SPRINKLER.get())) continue;
-            BlockEntity be = level.getBlockEntity(p);
-            if (be instanceof SprinklerBlockEntity sbe && sbe.getWaterMb() > 0) {
-                return sbe;
-            }
-        }
-        return null;
+        return SprinklerBlockEntity.wateredSprinklerNear(level, pos);
     }
 }

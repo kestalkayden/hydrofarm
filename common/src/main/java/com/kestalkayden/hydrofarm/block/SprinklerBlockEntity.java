@@ -1,9 +1,17 @@
 package com.kestalkayden.hydrofarm.block;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
@@ -18,6 +26,7 @@ import com.kestalkayden.hydrofarm.HydrofarmConfig;
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.FluidApi;
 import com.kestalkayden.hydrofarm.platform.HydrofarmPlatform;
+import com.kestalkayden.hydrofarm.util.Backoff;
 import com.kestalkayden.hydrofarm.util.PositionStagger;
 
 public class SprinklerBlockEntity extends BlockEntity {
@@ -73,11 +82,67 @@ public class SprinklerBlockEntity extends BlockEntity {
     private final int scanPhase;
     private final int growthPhase;
 
+    /** Backs the water pull off (10→20→40 ticks) when a dry/unplumbed neighbour set yields nothing,
+     *  so an unfed sprinkler stops re-probing its six neighbours every 10 ticks forever; a successful
+     *  pull resets it. Mirrors the generator's water pull and the siphon's push. */
+    private static final int PULL_BASE_COOLDOWN = 10;
+    private static final int PULL_MAX_COOLDOWN  = 40;
+    private static final int PULL_RAMP_CAP      = 2;
+    private final Backoff pullBackoff = new Backoff(PULL_BASE_COOLDOWN, PULL_MAX_COOLDOWN, PULL_RAMP_CAP);
+
+    /** Added to the {@link #SPRINKLERS} index on first tick, removed on {@link #setRemoved()}. */
+    private boolean registered = false;
+
     public SprinklerBlockEntity(BlockPos pos, BlockState state) {
         super(HydrofarmRefs.SPRINKLER_BE.get(), pos, state);
         long mixed = PositionStagger.mix(pos.asLong());
         this.scanPhase = (int) Math.floorMod(mixed, (long) SCAN_INTERVAL);
         this.growthPhase = (int) Math.floorMod(mixed >>> 17, (long) GROWTH_INTERVAL);
+    }
+
+    // ---- sprinkler position index (for FarmlandBlockMixin) -----------------------------------
+    // Per-dimension set of loaded sprinkler positions. FarmlandBlockMixin used to scan a 9×2×9
+    // (162-block) getBlockState box on EVERY farmland random-tick decay — globally, for all farmland
+    // in the world (including vanilla farms nowhere near a sprinkler). Instead it now asks this index
+    // for a watered sprinkler near a farmland block: a cheap bounds test over the (usually tiny)
+    // per-dimension set, with an instant null when the dimension has no sprinklers at all (the common
+    // case). Server-thread only, so a plain map/set is safe. Mirrors RepulserField.ACTIVE.
+    private static final Map<ResourceKey<Level>, Set<BlockPos>> SPRINKLERS = new HashMap<>();
+
+    private static void register(Level level, BlockPos pos) {
+        SPRINKLERS.computeIfAbsent(level.dimension(), k -> new HashSet<>()).add(pos.immutable());
+    }
+
+    private static void unregister(Level level, BlockPos pos) {
+        Set<BlockPos> set = SPRINKLERS.get(level.dimension());
+        if (set != null) {
+            set.remove(pos);
+            if (set.isEmpty()) SPRINKLERS.remove(level.dimension());
+        }
+    }
+
+    /** The first watered sprinkler whose 9×2×9 AoE (radius {@link #AOE_RADIUS} horizontal, at the
+     *  farmland's Y or one above) covers {@code farmland}, or null. Replaces the mixin's 162-block
+     *  scan: iterates the small per-dimension index with a cheap bounds test, resolving a block-entity
+     *  only for actual sprinkler positions and pruning any that are no longer sprinklers (mirrors
+     *  {@link RepulserField#covers}). */
+    public static SprinklerBlockEntity wateredSprinklerNear(ServerLevel level, BlockPos farmland) {
+        Set<BlockPos> set = SPRINKLERS.get(level.dimension());
+        if (set == null || set.isEmpty()) return null;
+        Iterator<BlockPos> it = set.iterator();
+        while (it.hasNext()) {
+            BlockPos sp = it.next();
+            int dy = sp.getY() - farmland.getY();
+            if (dy < 0 || dy > 1) continue;   // sprinkler at farmland's Y or one above (vanilla's box)
+            if (Math.abs(sp.getX() - farmland.getX()) > AOE_RADIUS
+                || Math.abs(sp.getZ() - farmland.getZ()) > AOE_RADIUS) continue;
+            if (level.getBlockEntity(sp) instanceof SprinklerBlockEntity sbe) {
+                if (sbe.getWaterMb() > 0) return sbe;
+            } else if (level.hasChunkAt(sp)) {
+                it.remove();   // loaded but no longer a sprinkler → stale entry, prune
+            }
+        }
+        return null;
     }
 
     public int getWaterMb() { return waterMb; }
@@ -114,8 +179,11 @@ public class SprinklerBlockEntity extends BlockEntity {
     public void serverTick(ServerLevel level, BlockPos pos, BlockState state) {
         long t = level.getGameTime();
 
-        if (t % PULL_INTERVAL == 0 && getRoomMb() > 0) {
-            tryPullFromNeighbors(level, pos);
+        if (!registered) { register(level, pos); registered = true; }
+
+        if (t % PULL_INTERVAL == 0 && getRoomMb() > 0 && pullBackoff.ready(PULL_INTERVAL)) {
+            if (tryPullFromNeighbors(level, pos) > 0) pullBackoff.recordMoved();
+            else pullBackoff.recordFutile();
         }
 
         // Refresh the farmland scan and top up freshly-hoed MOISTURE=0 dirt on a slow cadence.
@@ -203,9 +271,9 @@ public class SprinklerBlockEntity extends BlockEntity {
      *  Pulls up to (capacity - current) mB. Stops at the first successful pull each tick so a tank
      *  with leftovers can keep feeding even if other neighbors are dry. Uses the platform fluid
      *  seam so the same logic serves both loaders. */
-    private void tryPullFromNeighbors(ServerLevel level, BlockPos pos) {
+    private int tryPullFromNeighbors(ServerLevel level, BlockPos pos) {
         int room = getRoomMb();
-        if (room <= 0) return;
+        if (room <= 0) return 0;
 
         for (Direction dir : Direction.values()) {
             FluidApi.Endpoint endpoint =
@@ -215,9 +283,10 @@ public class SprinklerBlockEntity extends BlockEntity {
             if (pulled > 0) {
                 waterMb = Math.min(BUFFER_CAPACITY_MB, waterMb + pulled);
                 setChanged();
-                return;
+                return pulled;
             }
         }
+        return 0;
     }
 
     /** Sets all FARMLAND blocks in the 9×9 AoE at Y or Y−1 to MOISTURE=7. Covers both
@@ -278,5 +347,11 @@ public class SprinklerBlockEntity extends BlockEntity {
     protected void loadAdditional(ValueInput in) {
         super.loadAdditional(in);
         this.waterMb = Math.max(0, Math.min(BUFFER_CAPACITY_MB, in.getIntOr("WaterMb", 0)));
+    }
+
+    @Override
+    public void setRemoved() {
+        super.setRemoved();
+        if (level != null) unregister(level, worldPosition);
     }
 }
