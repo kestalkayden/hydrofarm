@@ -23,10 +23,12 @@ import com.kestalkayden.hydrofarm.platform.EnergyBuffer;
  *  cable pull, upkeep, and the ACTIVE state that drives the glow. */
 public class RepulserBlockEntity extends BlockEntity implements EnergyBuffer {
 
-    /** Field geometry. Horizontal radius (and its square, for cheap distance tests) + vertical reach. */
+    /** Field geometry. Horizontal radius (and its square, for cheap distance tests) + vertical reach.
+     *  ±16 vertical (33 blocks tall) so the field reaches meaningfully below into caves/mineshafts,
+     *  not just the surface layer. Stays well inside the sweep's {@code SWEEP_RADIUS} box. */
     public static final int RADIUS = 64;
     public static final int RADIUS_SQ = RADIUS * RADIUS;
-    public static final int VERTICAL = 8;
+    public static final int VERTICAL = 16;
 
     public static final int ENERGY_CAPACITY = 5_000;
     /** Flat upkeep spent per {@link #UPKEEP_INTERVAL} while the field is up (≈20 energy/second). */

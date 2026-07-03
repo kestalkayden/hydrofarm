@@ -16,9 +16,10 @@ import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.FluidApi;
 import com.kestalkayden.hydrofarm.platform.HydrofarmPlatform;
 
-/** Stateless passthrough: drains XP from sneaking survival players above and pushes it directly
- *  into the fluid block below. No internal buffer — if the downstream block is full or absent,
- *  the player keeps their XP. Right-click pulls XP back from the same downstream block. */
+/** Stateless passthrough: drains XP from sneaking survival players standing on or beside it (a 3x3
+ *  footprint) and pushes it directly into the fluid block below. No internal buffer — if the
+ *  downstream block is full or absent, the player keeps their XP. Right-click pulls XP back from the
+ *  same downstream block. */
 public class XpDrainBlockEntity extends BlockEntity {
 
     public static final int MB_PER_XP = 20;
@@ -74,16 +75,20 @@ public class XpDrainBlockEntity extends BlockEntity {
         return null;
     }
 
-    /** AABB just above the 2-voxel pad — catches a player standing on top. Cached: the BE never
-     *  moves, so this box (a pure function of {@code pos}) is built once and reused, avoiding a
-     *  fresh allocation on every 5-tick ACTIVE poll and every per-tick drain. */
+    /** AABB over the 2-voxel pad, widened 1 block on each horizontal axis so it catches a sneaking
+     *  player standing on the drain OR in any of the 8 adjacent cells (a 3x3 footprint). The height
+     *  band (just above the pad up to 1.5) is unchanged, so a player on the same floor level beside
+     *  the drain is caught but not one on a distant platform. Cached: the BE never moves, so this box
+     *  (a pure function of {@code pos}) is built once and reused, avoiding a fresh allocation on every
+     *  5-tick ACTIVE poll and every per-tick drain. */
     private AABB scanBox;
     private AABB playerScanBox(BlockPos pos) {
         AABB box = scanBox;
         if (box == null) {
             box = scanBox = new AABB(
                 pos.getX(),       pos.getY() + 2.0 / 16.0, pos.getZ(),
-                pos.getX() + 1.0, pos.getY() + 1.5,        pos.getZ() + 1.0);
+                pos.getX() + 1.0, pos.getY() + 1.5,        pos.getZ() + 1.0)
+                .inflate(1.0, 0.0, 1.0);
         }
         return box;
     }

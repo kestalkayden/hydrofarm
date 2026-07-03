@@ -51,7 +51,7 @@
   "block.hydrofarm.green_glowcube": "Green Glowcube",
   "block.hydrofarm.red_glowcube": "Red Glowcube",
   "block.hydrofarm.black_glowcube": "Black Glowcube",
-  "item.hydrofarm.repulser.tooltip1": "Blocks hostile spawns & clears strays within 64 blocks",
+  "item.hydrofarm.repulser.tooltip1": "Blocks hostile spawns & clears strays within 64 blocks and 16 up/down",
   "item.hydrofarm.repulser.tooltip2": "Needs power; a redstone signal switches it off",
   "item.hydrofarm.mending_station.tooltip1": "Repairs durability with Liquid XP + power",
   "item.hydrofarm.mending_station.tooltip2": "Pipe in damaged gear — keeps enchantments",
