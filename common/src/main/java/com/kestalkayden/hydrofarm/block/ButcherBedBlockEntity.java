@@ -295,22 +295,25 @@ public class ButcherBedBlockEntity extends AbstractClusterBedBlockEntity
         return counts;
     }
 
+    /** Reused buffer for {@link #clusterAdultCounts()} so the once-per-tick owner production check
+     *  never allocates a fresh map. Safe because it's cleared, refilled, and fully consumed within a
+     *  single call on the (single) server thread — no caller retains it across calls. */
+    private final Map<Identifier, Integer> adultCounts = new HashMap<>();
+
     /** Adults only (babies excluded) — drives the breeding-pair production count. Iterates the
      *  per-tick-cached {@link #clusterMembers()} (cluster discovery is already block-typed, so the
-     *  instanceof always holds) and allocates the count map lazily — an unstocked or all-baby pen
-     *  returns the shared empty map, so the once-per-tick owner call allocates nothing when idle. */
+     *  instanceof always holds) into the reused {@link #adultCounts} buffer, allocating nothing. */
     private Map<Identifier, Integer> clusterAdultCounts() {
-        Map<Identifier, Integer> counts = null;
+        adultCounts.clear();
         for (AbstractClusterBedBlockEntity mm : clusterMembers()) {
             if (!(mm instanceof ButcherBedBlockEntity m)) continue;
             for (int s = 0; s < STALL_COUNT; s++) {
                 if (m.hostTypes[s] != null && !AnimalNbt.isBaby(m.hostNbts[s])) {
-                    if (counts == null) counts = new HashMap<>();
-                    counts.merge(m.hostTypes[s], 1, Integer::sum);
+                    adultCounts.merge(m.hostTypes[s], 1, Integer::sum);
                 }
             }
         }
-        return counts == null ? Map.of() : counts;
+        return adultCounts;
     }
 
     /** Analytical cluster-wide gauge rates, mirroring the hydroponics bed: steady-state water

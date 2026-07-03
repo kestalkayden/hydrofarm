@@ -53,6 +53,10 @@ public class HydroelectricGeneratorBlockEntity extends BlockEntity {
     private static final int PUSH_MAX_COOLDOWN  = 40;
     private static final int PUSH_RAMP_CAP      = 2;
     private final Backoff pushBackoff = new Backoff(PUSH_BASE_COOLDOWN, PUSH_MAX_COOLDOWN, PUSH_RAMP_CAP);
+    /** Backs off the direct-adjacency water pull when no adjacent store surrenders water (unplumbed,
+     *  or fed only via a pipe INSERT with no touching tank), so a non-full generator stops re-probing
+     *  its six neighbours every 10 ticks; a successful pull resets it. */
+    private final Backoff waterPullBackoff = new Backoff(PUSH_BASE_COOLDOWN, PUSH_MAX_COOLDOWN, PUSH_RAMP_CAP);
 
     /** Direct-adjacency water intake: pull from a touching tank/siphon with no pipe (on top of the
      *  pipe network). Rate sits well above the {@code 2.5 mB/tick} burn so a touching tank keeps the
@@ -138,8 +142,12 @@ public class HydroelectricGeneratorBlockEntity extends BlockEntity {
         // Top up from any directly-adjacent water store (tank/siphon) before generating, so a
         // pipe-free "tank touching generator" build works. Capped to free space so the atomic pull
         // always commits; runs even mid-generation so this tick can use what it draws.
-        if (waterMb < WATER_CAPACITY_MB && now % WATER_PULL_INTERVAL == 0) {
-            FluidNeighbors.pull(level, pos, Fluids.WATER, Math.min(WATER_PULL_RATE, WATER_CAPACITY_MB - waterMb));
+        if (waterMb < WATER_CAPACITY_MB && now % WATER_PULL_INTERVAL == 0
+                && waterPullBackoff.ready(WATER_PULL_INTERVAL)) {
+            int pulled = FluidNeighbors.pull(level, pos, Fluids.WATER,
+                Math.min(WATER_PULL_RATE, WATER_CAPACITY_MB - waterMb));
+            if (pulled > 0) waterPullBackoff.recordMoved();
+            else waterPullBackoff.recordFutile();
         }
         // Produce only on the cycle tick, and only when a full step fits the buffer so water is
         // never spent on energy that would overflow and be discarded.
