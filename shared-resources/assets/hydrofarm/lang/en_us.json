@@ -59,6 +59,7 @@
   "item.hydrofarm.animal_capture_net": "Capture Net",
   "item.hydrofarm.animal_capture_net.tooltip.empty": "Empty — right-click a mob to capture",
   "item.hydrofarm.animal_capture_net.tooltip.contains": "Contains: %s",
+  "item.hydrofarm.animal_capture_net.released_empty": "This net's capture was corrupted and has been emptied",
 
   "hydrofarm.tooltip.baby": "baby",
 
