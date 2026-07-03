@@ -42,6 +42,9 @@ public final class HydrofarmRefs {
     public static Supplier<net.minecraft.core.component.DataComponentType<
         com.kestalkayden.hydrofarm.item.CapturedEntity>> CAPTURED_ENTITY;
 
+    public static Supplier<net.minecraft.core.component.DataComponentType<
+        com.kestalkayden.hydrofarm.item.ContainedEntities>> CONTAINED_ENTITIES;
+
     // Menu types
     public static Supplier<MenuType<?>> HYDROPONICS_BED_MENU, ANIMAL_BED_MENU,
         AUTOCRAFTER_MENU, ITEM_TERMINAL_MENU, LIQUID_TERMINAL_MENU, MENDING_STATION_MENU;

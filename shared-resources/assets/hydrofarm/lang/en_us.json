@@ -61,6 +61,14 @@
   "item.hydrofarm.animal_capture_net.tooltip.contains": "Contains: %s",
   "item.hydrofarm.animal_capture_net.released_empty": "This net's capture was corrupted and has been emptied",
 
+  "item.hydrofarm.capture_crate": "Capture Crate",
+  "item.hydrofarm.capture_crate.tooltip.empty": "Empty — right-click mobs to fill",
+  "item.hydrofarm.capture_crate.tooltip.count": "Holds: %s/%s",
+  "item.hydrofarm.capture_crate.tooltip.selected": "▶ %s",
+  "item.hydrofarm.capture_crate.tooltip.cycle_hint": "Sneak + right-click to cycle",
+  "item.hydrofarm.capture_crate.selected": "Selected: %s",
+  "item.hydrofarm.capture_crate.discarded": "Discarded an unreadable entry",
+
   "hydrofarm.tooltip.baby": "baby",
 
   "hydrofarm.variant.cat.tabby": "Tabby",

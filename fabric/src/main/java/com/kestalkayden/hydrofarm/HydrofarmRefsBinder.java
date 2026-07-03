@@ -52,6 +52,7 @@ public final class HydrofarmRefsBinder {
         HydrofarmRefs.HYDROFARM_PLANTER_ITEM  = () -> HydrofarmBlocks.HYDROFARM_PLANTER_ITEM;
         HydrofarmRefs.ANIMAL_CAPTURE_NET_ITEM = () -> HydrofarmBlocks.ANIMAL_CAPTURE_NET_ITEM;
         HydrofarmRefs.CAPTURED_ENTITY = () -> com.kestalkayden.hydrofarm.item.HydrofarmDataComponents.CAPTURED_ENTITY;
+        HydrofarmRefs.CONTAINED_ENTITIES = () -> com.kestalkayden.hydrofarm.item.HydrofarmDataComponents.CONTAINED_ENTITIES;
 
         HydrofarmRefs.HYDROPONICS_BED_MENU = () -> HydrofarmMenus.HYDROPONICS_BED;
         HydrofarmRefs.ANIMAL_BED_MENU      = () -> HydrofarmMenus.ANIMAL_BED;

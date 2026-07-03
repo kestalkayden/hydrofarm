@@ -62,6 +62,7 @@ public final class HydrofarmBlocks {
     /** Planter is no longer a block — it's an Item installed into a bed quadrant via right-click. */
     public static Item HYDROFARM_PLANTER_ITEM;
     public static Item ANIMAL_CAPTURE_NET_ITEM;
+    public static Item CAPTURE_CRATE_ITEM;
     /** All 17 glowcube block-items in creative-tab order (undyed, then DyeColor order). Glowcubes
      *  are inert full-block light-15 sources; only registration and the tab need a Java reference. */
     public static final List<BlockItem> GLOWCUBE_ITEMS = new ArrayList<>();
@@ -302,6 +303,12 @@ public final class HydrofarmBlocks {
         ANIMAL_CAPTURE_NET_ITEM = Registry.register(BuiltInRegistries.ITEM, netId,
             new com.kestalkayden.hydrofarm.item.AnimalCaptureNetItem(
                 new Item.Properties().setId(netKey).stacksTo(1)));
+
+        Identifier crateId = Identifier.fromNamespaceAndPath(HydrofarmFabric.MOD_ID, "capture_crate");
+        ResourceKey<Item> crateKey = ResourceKey.create(Registries.ITEM, crateId);
+        CAPTURE_CRATE_ITEM = Registry.register(BuiltInRegistries.ITEM, crateId,
+            new com.kestalkayden.hydrofarm.item.CaptureCrateItem(
+                new Item.Properties().setId(crateKey).stacksTo(1)));
     }
 
     private static BlockItem registerBlockItem(String name, Block block) {
