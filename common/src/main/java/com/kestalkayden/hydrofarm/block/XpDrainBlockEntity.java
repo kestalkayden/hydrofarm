@@ -16,10 +16,11 @@ import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.FluidApi;
 import com.kestalkayden.hydrofarm.platform.HydrofarmPlatform;
 
-/** Stateless passthrough: drains XP from sneaking survival players standing on or beside it (a 3x3
- *  footprint) and pushes it directly into the fluid block below. No internal buffer — if the
- *  downstream block is full or absent, the player keeps their XP. Right-click pulls XP back from the
- *  same downstream block. */
+/** Stateless passthrough: drains XP from a sneaking survival player standing on or beside the drain
+ *  and pushes it directly into the attached fluid store. Works for a floor drain (stand on/around it)
+ *  and the four wall/side mounts (stand against/beside the exposed face); a ceiling drain stays
+ *  right-click-only. No internal buffer — if the store is full or absent, the player keeps their XP.
+ *  Right-click pulls XP back from the same store. */
 public class XpDrainBlockEntity extends BlockEntity {
 
     public static final int MB_PER_XP = 20;
@@ -40,17 +41,18 @@ public class XpDrainBlockEntity extends BlockEntity {
         long t = level.getGameTime();
         Direction facing = state.getValue(XpDrainBlock.FACING);
 
-        // Sneak-drain only makes sense for floor-mounted (FACING=UP). Wall/ceiling variants are
-        // right-click-only.
+        // Sneak-drain works for a floor drain (FACING=UP) and the four wall/side mounts (FACING
+        // horizontal): stand on, against, or beside the exposed face and it deposits your XP into the
+        // attached store. Only a ceiling drain (FACING=DOWN) stays right-click-only.
         // Only run the per-tick entity scan + drain once the 5-tick ACTIVE poll has confirmed a
-        // sneaking player over a valid target. Keeps idle floor drains from querying entities every
-        // tick; a newly-sneaking player warms up within one poll (≤5 ticks).
-        if (facing == Direction.UP && state.getValue(XpDrainBlock.ACTIVE) && t % DRAIN_INTERVAL == 0) {
-            drainFromPlayersAbove(level, pos, facing);
+        // sneaking player near a valid target. Keeps idle drains from querying entities every tick;
+        // a newly-sneaking player warms up within one poll (≤5 ticks).
+        if (facing != Direction.DOWN && state.getValue(XpDrainBlock.ACTIVE) && t % DRAIN_INTERVAL == 0) {
+            drainFromNearbyPlayers(level, pos, facing);
         }
 
-        if (facing == Direction.UP && t % ACTIVE_POLL_INTERVAL == 0) {
-            boolean shouldBeActive = hasSneakingDrainablePlayer(level, pos)
+        if (facing != Direction.DOWN && t % ACTIVE_POLL_INTERVAL == 0) {
+            boolean shouldBeActive = hasSneakingDrainablePlayer(level, pos, facing)
                 && findTarget(level, pos, facing) != null;
             if (state.getValue(XpDrainBlock.ACTIVE) != shouldBeActive) {
                 // UPDATE_CLIENTS: ACTIVE drives the visual only — no neighbor reacts to it.
@@ -75,41 +77,55 @@ public class XpDrainBlockEntity extends BlockEntity {
         return null;
     }
 
-    /** AABB over the 2-voxel pad, widened 1 block on each horizontal axis so it catches a sneaking
-     *  player standing on the drain OR in any of the 8 adjacent cells (a 3x3 footprint). The height
-     *  band (just above the pad up to 1.5) is unchanged, so a player on the same floor level beside
-     *  the drain is caught but not one on a distant platform. Cached: the BE never moves, so this box
-     *  (a pure function of {@code pos}) is built once and reused, avoiding a fresh allocation on every
-     *  5-tick ACTIVE poll and every per-tick drain. */
+    /** The region a sneaking player must occupy to be drained, as a function of the drain's mount.
+     *  Floor drain (FACING=UP): a 3×3 footprint just above the 2-voxel pad — stand on it or in any of
+     *  the 8 adjacent cells. Wall/side drain (FACING horizontal): the space in front of the exposed
+     *  face — the drain's cell plus the block in front, widened one to each side, at standing height —
+     *  so you can stand against or beside a tank-mounted drain. Cached: the BE never moves and its
+     *  FACING is fixed once placed, so the box is built once and reused, avoiding a fresh allocation
+     *  on every 5-tick poll and every per-tick drain. */
     private AABB scanBox;
-    private AABB playerScanBox(BlockPos pos) {
+    private AABB playerScanBox(BlockPos pos, Direction facing) {
         AABB box = scanBox;
         if (box == null) {
-            box = scanBox = new AABB(
-                pos.getX(),       pos.getY() + 2.0 / 16.0, pos.getZ(),
-                pos.getX() + 1.0, pos.getY() + 1.5,        pos.getZ() + 1.0)
-                .inflate(1.0, 0.0, 1.0);
+            if (facing == Direction.UP) {
+                box = new AABB(
+                    pos.getX(),       pos.getY() + 2.0 / 16.0, pos.getZ(),
+                    pos.getX() + 1.0, pos.getY() + 1.5,        pos.getZ() + 1.0)
+                    .inflate(1.0, 0.0, 1.0);
+            } else {
+                // Wall/side (FACING horizontal): span the drain's cell + the cell in front of the
+                // exposed face, at standing height (feet ~pos.y up), widened one block on the axis
+                // perpendicular to FACING so "beside it" counts. (DOWN never reaches here — gated out.)
+                double minX = Math.min(pos.getX(),       pos.getX() + facing.getStepX());
+                double minZ = Math.min(pos.getZ(),       pos.getZ() + facing.getStepZ());
+                double maxX = Math.max(pos.getX() + 1.0, pos.getX() + 1.0 + facing.getStepX());
+                double maxZ = Math.max(pos.getZ() + 1.0, pos.getZ() + 1.0 + facing.getStepZ());
+                box = new AABB(minX, pos.getY(), minZ, maxX, pos.getY() + 2.0, maxZ);
+                box = facing.getStepX() == 0 ? box.inflate(1.0, 0.0, 0.0) : box.inflate(0.0, 0.0, 1.0);
+            }
+            scanBox = box;
         }
         return box;
     }
 
-    private boolean hasSneakingDrainablePlayer(ServerLevel level, BlockPos pos) {
-        List<Player> players = level.getEntitiesOfClass(Player.class, playerScanBox(pos),
+    private boolean hasSneakingDrainablePlayer(ServerLevel level, BlockPos pos, Direction facing) {
+        List<Player> players = level.getEntitiesOfClass(Player.class, playerScanBox(pos, facing),
             p -> p.isCrouching() && !p.isCreative() && !p.isSpectator()
                   && (p.experienceLevel > 0 || p.experienceProgress > 0));
         return !players.isEmpty();
     }
 
-    /** Push directly from each sneaking player into the first available fluid-capable neighbor.
-     *  XP moves in whole points ({@link #MB_PER_XP} each); any sub-XP remainder the target accepts
-     *  (the insert capped on room that isn't a whole-point multiple) is undone (extract-back), so the
-     *  player is charged for exactly the whole points banked and no fluid is minted. Only invoked
-     *  when FACING=UP. */
-    private void drainFromPlayersAbove(ServerLevel level, BlockPos pos, Direction facing) {
+    /** Push directly from each sneaking player near the drain (see {@link #playerScanBox}) into the
+     *  first available fluid-capable neighbor. XP moves in whole points ({@link #MB_PER_XP} each); any
+     *  sub-XP remainder the target accepts (the insert capped on room that isn't a whole-point
+     *  multiple) is undone (extract-back), so the player is charged for exactly the whole points
+     *  banked and no fluid is minted. Invoked for any non-ceiling facing. */
+    private void drainFromNearbyPlayers(ServerLevel level, BlockPos pos, Direction facing) {
         FluidApi.Endpoint target = findTarget(level, pos, facing);
         if (target == null) return;
 
-        List<Player> players = level.getEntitiesOfClass(Player.class, playerScanBox(pos),
+        List<Player> players = level.getEntitiesOfClass(Player.class, playerScanBox(pos, facing),
             p -> p.isCrouching() && !p.isCreative() && !p.isSpectator()
                   && (p.experienceLevel > 0 || p.experienceProgress > 0));
         if (players.isEmpty()) return;
