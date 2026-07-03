@@ -29,10 +29,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
-import net.minecraft.world.entity.boss.wither.WitherBoss;
-import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -48,8 +44,8 @@ import com.kestalkayden.hydrofarm.util.AnimalNbt;
  *  right-click on a block face spawns the entity on top of that block and empties the net.
  *
  *  Capture allowed: passive/neutral living entities. Blocked: players, bosses (Ender Dragon,
- *  Wither, Warden), and anything in {@link MobCategory#MONSTER}. Hostile capture is reserved
- *  for a future Tier-2 net. */
+ *  Wither, Warden), and anything in the MONSTER category — see {@link CaptureRules#isEligible},
+ *  the filter shared with the Capture Crate. Hostile capture is reserved for a future Tier-2 net. */
 public class AnimalCaptureNetItem extends Item {
 
     public AnimalCaptureNetItem(Properties properties) {
@@ -184,19 +180,9 @@ public class AnimalCaptureNetItem extends Item {
     }
 
     private static boolean isCapturable(ItemStack stack, LivingEntity entity) {
+        // One entity per net; eligibility is the shared rule the Capture Crate uses too.
         if (stack.has(com.kestalkayden.hydrofarm.HydrofarmRefs.CAPTURED_ENTITY.get())) return false;
-        // Hardcoded absolute blocks — not overridable by the always_capturable tag.
-        if (entity instanceof Player) return false;
-        if (entity instanceof EnderDragon) return false;
-        if (entity instanceof WitherBoss) return false;
-        if (entity instanceof Warden) return false;
-
-        EntityType<?> type = entity.getType();
-        // Datapack overrides via the shared capturenet: tags, so one datapack governs both this net
-        // and the standalone mod's. The blocklist wins when an author tags an entity both ways.
-        if (type.builtInRegistryHolder().is(CaptureNetCompat.CANNOT_CAPTURE)) return false;
-        if (type.builtInRegistryHolder().is(CaptureNetCompat.ALWAYS_CAPTURABLE)) return true;
-        return type.getCategory() != MobCategory.MONSTER;
+        return CaptureRules.isEligible(entity);
     }
 
     @Override

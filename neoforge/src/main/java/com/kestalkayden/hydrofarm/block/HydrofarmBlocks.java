@@ -351,6 +351,12 @@ public final class HydrofarmBlocks {
             new Item.Properties().setId(key).stacksTo(1));
     });
 
+    public static final DeferredItem<Item> CAPTURE_CRATE_ITEM = ITEMS.register("capture_crate", id -> {
+        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
+        return new com.kestalkayden.hydrofarm.item.CaptureCrateItem(
+            new Item.Properties().setId(key).stacksTo(1));
+    });
+
     /** All 17 glowcube block-items in creative-tab order (undyed, then DyeColor order). Glowcubes are
      *  inert full-block light-15 sources; only registration and the tab need a Java reference. This
      *  static block runs after BLOCKS/ITEMS are initialised above, so the DeferredRegisters exist. */

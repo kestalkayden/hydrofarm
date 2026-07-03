@@ -53,8 +53,13 @@ public final class HydrofarmFabric implements ModInitializer {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (!(entity instanceof LivingEntity living)) return InteractionResult.PASS;
             ItemStack stack = player.getItemInHand(hand);
-            if (!(stack.getItem() instanceof AnimalCaptureNetItem)) return InteractionResult.PASS;
-            return AnimalCaptureNetItem.tryCapture(stack, player, living, hand);
+            if (stack.getItem() instanceof AnimalCaptureNetItem) {
+                return AnimalCaptureNetItem.tryCapture(stack, player, living, hand);
+            }
+            if (stack.getItem() instanceof com.kestalkayden.hydrofarm.item.CaptureCrateItem) {
+                return com.kestalkayden.hydrofarm.item.CaptureCrateItem.tryCapture(stack, player, living, hand);
+            }
+            return InteractionResult.PASS;
         });
 
         // Monster Repulser: block hostile spawns inside an active field (discard the moment they
@@ -200,6 +205,7 @@ public final class HydrofarmFabric implements ModInitializer {
                     // ships its own copy.
                     if (!FabricLoader.getInstance().isModLoaded("capturenet")) {
                         output.accept(HydrofarmBlocks.ANIMAL_CAPTURE_NET_ITEM);
+                        output.accept(HydrofarmBlocks.CAPTURE_CRATE_ITEM);
                     }
                 })
                 .build());

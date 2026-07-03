@@ -11,6 +11,7 @@ import net.minecraft.resources.Identifier;
 public final class HydrofarmDataComponents {
 
     public static DataComponentType<CapturedEntity> CAPTURED_ENTITY;
+    public static DataComponentType<ContainedEntities> CONTAINED_ENTITIES;
 
     private HydrofarmDataComponents() {}
 
@@ -21,6 +22,14 @@ public final class HydrofarmDataComponents {
             DataComponentType.<CapturedEntity>builder()
                 .persistent(CapturedEntity.CODEC)
                 .networkSynchronized(CapturedEntity.STREAM_CODEC)
+                .build());
+
+        CONTAINED_ENTITIES = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
+            Identifier.fromNamespaceAndPath(HydrofarmFabric.MOD_ID, "contained_entities"),
+            DataComponentType.<ContainedEntities>builder()
+                .persistent(ContainedEntities.CODEC)
+                .networkSynchronized(ContainedEntities.STREAM_CODEC)
                 .build());
     }
 }

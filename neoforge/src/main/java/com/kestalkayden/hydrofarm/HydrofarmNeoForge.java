@@ -77,6 +77,7 @@ public final class HydrofarmNeoForge {
                 // ships its own copy.
                 if (!ModList.get().isLoaded("capturenet")) {
                     output.accept(HydrofarmBlocks.ANIMAL_CAPTURE_NET_ITEM.get());
+                    output.accept(HydrofarmBlocks.CAPTURE_CRATE_ITEM.get());
                 }
             })
             .build());
@@ -123,9 +124,14 @@ public final class HydrofarmNeoForge {
     private static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (!(event.getTarget() instanceof LivingEntity living)) return;
         ItemStack stack = event.getItemStack();
-        if (!(stack.getItem() instanceof AnimalCaptureNetItem)) return;
-        InteractionResult result = AnimalCaptureNetItem.tryCapture(
-            stack, event.getEntity(), living, event.getHand());
+        InteractionResult result;
+        if (stack.getItem() instanceof AnimalCaptureNetItem) {
+            result = AnimalCaptureNetItem.tryCapture(stack, event.getEntity(), living, event.getHand());
+        } else if (stack.getItem() instanceof com.kestalkayden.hydrofarm.item.CaptureCrateItem) {
+            result = com.kestalkayden.hydrofarm.item.CaptureCrateItem.tryCapture(stack, event.getEntity(), living, event.getHand());
+        } else {
+            return;
+        }
         if (result.consumesAction()) {
             event.setCanceled(true);
             event.setCancellationResult(result);

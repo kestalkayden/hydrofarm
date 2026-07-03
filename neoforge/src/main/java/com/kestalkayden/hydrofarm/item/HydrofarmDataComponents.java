@@ -23,5 +23,16 @@ public final class HydrofarmDataComponents {
             return CAPTURED_ENTITY;
         });
 
+    public static DataComponentType<ContainedEntities> CONTAINED_ENTITIES;
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ContainedEntities>> CONTAINED_ENTITIES_HOLDER =
+        COMPONENTS.register("contained_entities", () -> {
+            CONTAINED_ENTITIES = DataComponentType.<ContainedEntities>builder()
+                .persistent(ContainedEntities.CODEC)
+                .networkSynchronized(ContainedEntities.STREAM_CODEC)
+                .build();
+            return CONTAINED_ENTITIES;
+        });
+
     private HydrofarmDataComponents() {}
 }
