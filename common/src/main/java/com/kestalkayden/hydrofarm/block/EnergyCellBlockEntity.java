@@ -29,15 +29,24 @@ import com.kestalkayden.hydrofarm.HydrofarmRefs;
 import com.kestalkayden.hydrofarm.platform.EnergyBuffer;
 import com.kestalkayden.hydrofarm.util.PositionStagger;
 
-/** Passive energy bank that clusters with adjacent cells into a shared pool. Per-cell capacity
- *  is {@link #CELL_CAPACITY}; the cluster total is computed by summing members. Energy is TYPELESS
- *  (no fluid-identity guards). The cell does not push or pull itself — generators push in and
- *  consumers pull out via the insert+extract capability. */
+/** Energy bank that clusters with adjacent cells into a shared pool. Per-cell capacity is
+ *  {@link #CELL_CAPACITY}; the cluster total is computed by summing members. Energy is TYPELESS
+ *  (no fluid-identity guards). Generators push in and consumers pull out via the insert+extract
+ *  capability; the cell also runs its own banking pull (see {@link #serverTick}) to draw idle
+ *  network sources — the Hydroelectric Generator and foreign push-sources like TechReborn solar
+ *  panels — that a purely passive bank would never receive. */
 public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
 
     public static final int CELL_CAPACITY = 100_000;
 
+    /** Banking pull: every {@link #PULL_INTERVAL} ticks the cell draws up to {@link #PULL_RATE} from
+     *  the connected network's non-cell sources. Matches the consumers' 256/5-tick (~51 E/t) rate. */
+    private static final int PULL_INTERVAL = 5;
+    private static final int PULL_RATE = 256;
+
     private int storedEnergy = 0;
+
+    private final EnergyNetwork energyNet = new EnergyNetwork();
 
     /** Lazily-created, cached loader-specific energy capability wrapper. Caching is required:
      *  cluster operations must enroll the SAME per-cell instance in a transaction so snapshot
@@ -104,11 +113,17 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
     // Faint charge glow — flip LIT when the bank holds energy (mirrors the tank/repulser light path)
     // -----------------------------------------------------------------------------------------
 
-    /** Server tick: flips {@link EnergyCellBlock#LIT} as stored energy crosses 0 so a charged cell
-     *  emits a faint light. Only fires {@code setBlock} on the transition; the explicit
-     *  {@code checkBlock} relight is required (setBlock alone is unreliable on Fabric). The probe's
-     *  simulated extract-then-rollback nets zero, so it never flips LIT spuriously. */
+    /** Server tick: banks idle network sources into the cell, then flips {@link EnergyCellBlock#LIT}
+     *  as stored energy crosses 0 so a charged cell emits a faint light. Only fires {@code setBlock}
+     *  on the transition; the explicit {@code checkBlock} relight is required (setBlock alone is
+     *  unreliable on Fabric). */
     public void serverTick(ServerLevel level, BlockPos pos, BlockState state) {
+        // Bank idle network sources (the generator + foreign push-sources). skipCellSources = true so
+        // two cells linked only by a pipe never pull from each other (energy sloshing).
+        if (level.getGameTime() % PULL_INTERVAL == 0) {
+            energyNet.pull(level, pos, this, PULL_RATE, true);
+        }
+
         boolean shouldBeLit = storedEnergy > 0;
         if (state.hasProperty(EnergyCellBlock.LIT) && state.getValue(EnergyCellBlock.LIT) != shouldBeLit) {
             level.setBlock(pos, state.setValue(EnergyCellBlock.LIT, shouldBeLit),
