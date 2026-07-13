@@ -38,19 +38,20 @@ import com.kestalkayden.hydrofarm.util.Backoff;
 public class LiquidPipeTerminalBlockEntity extends BlockEntity {
 
     public static final int FILTER_SIZE = 5;
-    /** Flattened single-tier throughput (mB/tick). 3/tick = 60 mB/s — the deliberate "middle"
-     *  between the old standard (1) and advanced (5) liquid pumps. */
-    public static final int THROUGHPUT_MB_PER_TICK = 3;
+    /** Flattened single-tier throughput (mB/tick). 12/tick = 240 mB/s (~67 s to move a full 16k tank).
+     *  Deliberately gentle vs industrial fluid pipes, but the old 3/tick (60 mB/s, ~4.5 min per tank)
+     *  made bulk tank-to-tank routing painfully slow. */
+    public static final int THROUGHPUT_MB_PER_TICK = 12;
     /** Perf batch: accumulate throughput and only run the find()/BFS/distribute path once the buffer
      *  reaches this, so a steady source isn't network-walked every tick (the item terminal gets the
      *  same batching for free from its 1-item granularity). Net throughput is unchanged — the burst
-     *  moves the whole accumulated budget. 12 mB ≈ one run per 4 ticks at 3 mB/tick. */
-    private static final int BURST_THRESHOLD_MB = 12;
+     *  moves the whole accumulated budget. 48 mB ≈ one run per 4 ticks at 12 mB/tick. */
+    private static final int BURST_THRESHOLD_MB = 48;
     /** Cap on unspent (positive) budget so a stalled face (full/absent targets) doesn't accumulate
      *  forever. Note {@code bufferMb} can also go NEGATIVE: a coarse-source pull (see {@link
      *  #coarsePull}) moves up to a whole bucket and debits it here, running the budget into debt
-     *  (floor ≈ {@code BURST_THRESHOLD_MB - 1000} ≈ -988) that the per-tick accrual repays. */
-    private static final int BUFFER_CAP_MB = 120;
+     *  (floor ≈ {@code BURST_THRESHOLD_MB - 1000} ≈ -952) that the per-tick accrual repays. */
+    private static final int BUFFER_CAP_MB = 480;
 
     /** Adaptive back-off: an EXTRACT face that moves nothing (empty source / no INSERT targets / all
      *  destinations full) ramps its re-probe interval 10→20→40 ticks instead of bursting every gated
