@@ -48,7 +48,7 @@ public final class EnergyNetwork {
     private final Backoff pullBackoff = new Backoff(1, 1 << PULL_RAMP_CAP, PULL_RAMP_CAP);
     private long pullEpoch = Long.MIN_VALUE;
 
-    private record Source(BlockPos pos, Direction side) {}
+    private record Source(BlockPos pos, Direction side, boolean isCell) {}
 
     /** The cached resolver for this block's own endpoint (insert side for pull, extract for push). */
     private EnergyApi.Endpoint self(ServerLevel level, BlockPos pos) {
@@ -69,6 +69,16 @@ public final class EnergyNetwork {
      *  (see {@link #PULL_RAMP_CAP}) when a call moves nothing, so a powered sink on a dead/dry grid
      *  doesn't re-resolve every boundary endpoint every interval — symmetric with the generator's push. */
     public void pull(ServerLevel level, BlockPos pos, EnergyBuffer buffer, int maxPerPull) {
+        pull(level, pos, buffer, maxPerPull, false);
+    }
+
+    /** As {@link #pull(ServerLevel, BlockPos, EnergyBuffer, int)}, but when {@code skipCellSources} is
+     *  true, boundary sources that are themselves Energy Cells are ignored. The Energy Cell's own
+     *  banking pull passes true so two cells linked only by a pipe don't endlessly pull from each other
+     *  (energy sloshing) — it still banks the generator and foreign push-sources. Consumers pass false
+     *  so the generator→cell→consumer bank chain can still drain cells. */
+    public void pull(ServerLevel level, BlockPos pos, EnergyBuffer buffer, int maxPerPull,
+                     boolean skipCellSources) {
         int room = buffer.getEnergyCapacity() - buffer.getEnergyStored();
         if (room <= 0) {            // buffer full — well supplied; clear back-off so a fresh drain re-probes at once
             pullBackoff.reset();
@@ -92,6 +102,7 @@ public final class EnergyNetwork {
                 int budget = Math.min(maxPerPull, room);
                 for (Source src : sources) {
                     if (budget <= 0) break;
+                    if (skipCellSources && src.isCell()) continue;
                     EnergyApi.Endpoint endpoint = endpointOf(level, src);
                     if (endpoint == null || endpoint.extractableEnergy() <= 0) continue;
                     int m = endpoint.moveTo(self, budget);
@@ -179,7 +190,7 @@ public final class EnergyNetwork {
         if (s.is(HydrofarmRefs.ENERGY_PIPE.get())) {
             if (visited.add(next)) queue.add(next);
         } else if (recorded.add(next)) {
-            result.add(new Source(next, d.getOpposite()));
+            result.add(new Source(next, d.getOpposite(), s.is(HydrofarmRefs.ENERGY_CELL.get())));
         }
     }
 }
