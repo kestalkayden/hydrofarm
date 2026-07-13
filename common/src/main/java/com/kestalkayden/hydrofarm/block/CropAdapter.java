@@ -58,7 +58,7 @@ public interface CropAdapter {
      *  NORMALIZED to a flat cadence decoupled from the plant's vanilla growth speed — so every crop
      *  produces at the same rate regardless of how fast it grows in vanilla. Trees and other
      *  non-CROP adapters keep their own {@link #maxAge}-based cadence. */
-    int NORMALIZED_CROP_GROWTH_STEPS = 10;  // 10 grow + 1 harvest = 11 windows × 40s = 440s ≈ 8.2/hr
+    int NORMALIZED_CROP_GROWTH_STEPS = 6;  // 6 grow + 1 harvest = 7 windows × 40s = 280s ≈ 12.9/hr
     default int growthSteps() {
         return category() == Category.CROP ? NORMALIZED_CROP_GROWTH_STEPS : maxAge();
     }

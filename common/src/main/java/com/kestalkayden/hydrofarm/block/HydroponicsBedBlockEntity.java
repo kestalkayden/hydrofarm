@@ -39,7 +39,11 @@ public class HydroponicsBedBlockEntity extends AbstractClusterBedBlockEntity {
     public static final int QUADRANT_SE = 3;
 
     public static final int GROWTH_INTERVAL_TICKS = 800;
-    public static final int WATER_PER_GROW_MB = 15;
+    /** Water drawn from the cluster pool per growth step. At 6 crop steps that's 300 mB per crop; one
+     *  Liquid Siphon (~100 mB/s) sustains ~93 planters (~23 full beds) before a second is needed —
+     *  water is a real input past a mid-size farm, but a starter farm never notices (under-supply just
+     *  pauses growth; the 1000 mB/bed buffer smooths delivery). Shared by the tree farm bed. */
+    public static final int WATER_PER_GROW_MB = 50;
     public static final int XP_PER_HARVEST_MB = 1;
     /** Surplus seeds: ~1 in 5 of a seed-bearing crop's seed drop is kept as output (automatable
      *  chicken feed); the rest is discarded since the planter replants itself. */
