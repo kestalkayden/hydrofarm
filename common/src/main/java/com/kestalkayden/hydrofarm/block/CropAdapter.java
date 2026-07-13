@@ -63,10 +63,15 @@ public interface CropAdapter {
         return category() == Category.CROP ? NORMALIZED_CROP_GROWTH_STEPS : maxAge();
     }
 
-    /** The single item this CROP yields per harvest — exactly 1, deterministic, with NO per-harvest
-     *  loot-table evaluation. Return {@link Items#AIR} to opt out: trees and modded crops without an
-     *  explicit product fall back to {@link #produceDrops}. */
+    /** The item this CROP yields per harvest (quantity from {@link #harvestCount()}) — deterministic,
+     *  with NO per-harvest loot-table evaluation. Return {@link Items#AIR} to opt out: trees and modded
+     *  crops without an explicit product fall back to {@link #produceDrops}. */
     default Item harvestItem() { return Items.AIR; }
+
+    /** How many {@link #harvestItem()} one harvest yields. Defaults to 1 — every normalized crop is a
+     *  single product per cycle. Melon overrides this (4) to reflect its multi-slice vanilla yield;
+     *  a single slice per cycle made it the least valuable crop by a wide margin. */
+    default int harvestCount() { return 1; }
 
     /** Drops produced for ONE harvest cycle. Default samples {@link #harvestState()}'s loot
      *  table once. "Tall plants" like bamboo override to return deterministic bulk drops since
@@ -197,6 +202,7 @@ public interface CropAdapter {
     CropAdapter STEM_MELON = new CropAdapter() {
         @Override public int maxAge() { return StemBlock.MAX_AGE; }
         @Override public Item harvestItem() { return Items.MELON_SLICE; }
+        @Override public int harvestCount() { return 4; }
         @Override public BlockState growthState(int age) {
             return Blocks.MELON_STEM.defaultBlockState().setValue(StemBlock.AGE, clamp(age, StemBlock.MAX_AGE));
         }

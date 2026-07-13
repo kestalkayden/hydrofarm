@@ -218,8 +218,8 @@ public class HydroponicsBedBlockEntity extends AbstractClusterBedBlockEntity {
 
         List<ItemStack> drops;
         if (ca.category() == CropAdapter.Category.CROP && ca.harvestItem() != Items.AIR) {
-            // Normalized crop: exactly 1 of the product, deterministic — no per-harvest loot eval.
-            drops = List.of(new ItemStack(ca.harvestItem(), 1));
+            // Normalized crop: a deterministic fixed count of the product — no per-harvest loot eval.
+            drops = List.of(new ItemStack(ca.harvestItem(), ca.harvestCount()));
         } else {
             // Trees (bulk logs+sapling) and modded crops without an explicit product: sample the
             // loot table, then discard the surplus-seed half (the planter replants itself).
