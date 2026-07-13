@@ -144,6 +144,64 @@ public class LiquidTankBlockEntity extends BlockEntity {
         return taken;
     }
 
+    // ---- cluster-aware fill/drain for the manual bucket path -------------------------------------
+    // Players emptying/filling a bucket by hand go through LiquidTankBlock#useItemOn, which does NOT
+    // pass through the loader Storage/Handler — those cluster-aware paths only run for pipes/hoppers.
+    // Without these, a bucket only ever fills/drains the single clicked tank, so a multi-tank cluster
+    // caps at one tank's capacity. These mirror LiquidTankFluidStorage's settle order (fill bottom-up,
+    // drain top-down) so per-tank state stays consistent with the visual. No transaction enrollment:
+    // a player interaction isn't part of a Fabric transfer transaction, so direct mutation is correct.
+
+    /** Cluster-aware insert: fills members bottom-up ({@link #clusterMembers()} is sorted y,z,x).
+     *  Returns mB accepted. Equivalent to {@link #insert} when not in a multi-tank cluster. */
+    public int insertIntoCluster(Fluid resource, int requestedMb) {
+        int remaining = requestedMb;
+        int accepted = 0;
+        for (LiquidTankBlockEntity m : clusterMembers()) {
+            if (remaining <= 0) break;
+            int a = m.insert(resource, remaining);
+            accepted += a;
+            remaining -= a;
+        }
+        return accepted;
+    }
+
+    /** Cluster-aware extract: drains members top-down so the bottom stays full longest. Returns mB
+     *  taken. Equivalent to {@link #extract} when not in a multi-tank cluster. */
+    public int extractFromCluster(Fluid resource, int requestedMb) {
+        List<LiquidTankBlockEntity> members = clusterMembers();
+        int remaining = requestedMb;
+        int taken = 0;
+        for (int i = members.size() - 1; i >= 0; i--) {
+            if (remaining <= 0) break;
+            int t = members.get(i).extract(resource, remaining);
+            taken += t;
+            remaining -= t;
+        }
+        return taken;
+    }
+
+    /** Total free space across the cluster for {@code fluid} — counts members that are empty or
+     *  already hold {@code fluid} (a mixed-in different-fluid member can't accept it). */
+    public int clusterRoomMb(Fluid fluid) {
+        int room = 0;
+        for (LiquidTankBlockEntity m : clusterMembers()) {
+            if (m.getFluid() == Fluids.EMPTY || m.getFluid() == fluid) room += m.getRoomMb();
+        }
+        return room;
+    }
+
+    /** Total mB of the cluster's fluid, summed across the members holding it. 0 when empty. */
+    public int clusterAmountMb() {
+        Fluid f = clusterFluid();
+        if (f == Fluids.EMPTY) return 0;
+        int total = 0;
+        for (LiquidTankBlockEntity m : clusterMembers()) {
+            if (m.getFluid() == f) total += m.getAmountMb();
+        }
+        return total;
+    }
+
     /** Atomic snapshot record for transaction rollback. */
     public record Snapshot(Fluid fluid, int amountMb) {}
 

@@ -144,7 +144,7 @@ public class LiquidTankBlock extends BaseEntityBlock {
         Fluid bucketFluid = FluidContainers.bucketContentFluid(stack.getItem());
         if (bucketFluid != Fluids.EMPTY && canAcceptFluid(be, bucketFluid)) {
             if (!level.isClientSide()) {
-                be.insert(bucketFluid, FluidContainers.BUCKET_MB);
+                be.insertIntoCluster(bucketFluid, FluidContainers.BUCKET_MB);
                 if (!player.getAbilities().instabuild) {
                     FluidContainers.replaceHandItem(player, hand, stack, new ItemStack(Items.BUCKET));
                 }
@@ -154,10 +154,12 @@ public class LiquidTankBlock extends BaseEntityBlock {
             return InteractionResult.SUCCESS;
         }
 
-        // Empty bucket / glass bottle -> fill from the stored fluid. Shared with the cluster beds
-        // via FluidContainers so the amounts and fluid->item mappings stay in lockstep.
+        // Empty bucket / glass bottle -> fill from the stored fluid. Cluster-pooled (not just this
+        // tank) and shared with the cluster beds via FluidContainers so the amounts and fluid->item
+        // mappings stay in lockstep.
+        Fluid stored = be.clusterFluid();
         InteractionResult filled = FluidContainers.tryFill(stack, player, hand, level, pos,
-            be.getFluid(), be.getAmountMb(), mb -> be.extract(be.getFluid(), mb));
+            stored, be.clusterAmountMb(), mb -> be.extractFromCluster(stored, mb));
         if (filled != InteractionResult.PASS) return filled;
 
         return InteractionResult.TRY_WITH_EMPTY_HAND;
@@ -169,6 +171,6 @@ public class LiquidTankBlock extends BaseEntityBlock {
     private static boolean canAcceptFluid(LiquidTankBlockEntity be, Fluid fluid) {
         Fluid clusterFluid = be.clusterFluid();
         return (clusterFluid == Fluids.EMPTY || clusterFluid == fluid)
-            && be.getRoomMb() >= FluidContainers.BUCKET_MB;
+            && be.clusterRoomMb(fluid) >= FluidContainers.BUCKET_MB;
     }
 }
