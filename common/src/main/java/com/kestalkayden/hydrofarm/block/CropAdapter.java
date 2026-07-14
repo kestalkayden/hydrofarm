@@ -49,10 +49,17 @@ public interface CropAdapter {
     int maxAge();
     /** BlockState shown in the planter while growing. Caller clamps {@code age} to maxAge. */
     BlockState growthState(int age);
-    /** BlockState whose loot table we sample at harvest. For fruit-bearing plants this is the
-     *  FRUIT block (melon → MELON, pumpkin → PUMPKIN, chorus → CHORUS_PLANT). Defaults to the
-     *  mature growth state, which is correct for crops that drop their own seeds (wheat, etc.). */
+    /** BlockState whose loot table we sample at harvest (only on the {@link #produceDrops} path —
+     *  trees + modded crops). For fruit-bearing plants this is the FRUIT block (e.g. chorus →
+     *  CHORUS_PLANT). Defaults to the mature growth state, correct for crops that drop their own
+     *  seeds (wheat, etc.). */
     default BlockState harvestState() { return growthState(maxAge()); }
+
+    /** When true, the Hydroponics Bed renders this crop as its full-colour FRUIT block scaled up with
+     *  growth, instead of a per-stage stalk model. Melon/pumpkin use it: vanilla has no partial-fruit
+     *  stages (the fruit is binary), and the stem texture is grayscale — the bed renders models
+     *  untinted, so a stem shows up gray; the fruit block reads correctly and needs no tint. */
+    default boolean rendersAsScaledFruit() { return false; }
 
     /** Growth windows (each {@code GROWTH_INTERVAL_TICKS}) before a quadrant harvests. Crops are
      *  NORMALIZED to a flat cadence decoupled from the plant's vanilla growth speed — so every crop
@@ -203,19 +210,17 @@ public interface CropAdapter {
         @Override public int maxAge() { return StemBlock.MAX_AGE; }
         @Override public Item harvestItem() { return Items.MELON_SLICE; }
         @Override public int harvestCount() { return 4; }
-        @Override public BlockState growthState(int age) {
-            return Blocks.MELON_STEM.defaultBlockState().setValue(StemBlock.AGE, clamp(age, StemBlock.MAX_AGE));
-        }
-        @Override public BlockState harvestState() { return Blocks.MELON.defaultBlockState(); }
+        @Override public boolean rendersAsScaledFruit() { return true; }
+        // Render the melon itself, swelling with growth (see rendersAsScaledFruit): the stem is a
+        // grayscale texture the bed can't tint, and vanilla has no partial-melon stages anyway.
+        @Override public BlockState growthState(int age) { return Blocks.MELON.defaultBlockState(); }
     };
 
     CropAdapter STEM_PUMPKIN = new CropAdapter() {
         @Override public int maxAge() { return StemBlock.MAX_AGE; }
         @Override public Item harvestItem() { return Items.PUMPKIN; }
-        @Override public BlockState growthState(int age) {
-            return Blocks.PUMPKIN_STEM.defaultBlockState().setValue(StemBlock.AGE, clamp(age, StemBlock.MAX_AGE));
-        }
-        @Override public BlockState harvestState() { return Blocks.PUMPKIN.defaultBlockState(); }
+        @Override public boolean rendersAsScaledFruit() { return true; }
+        @Override public BlockState growthState(int age) { return Blocks.PUMPKIN.defaultBlockState(); }
     };
 
     CropAdapter NETHER_WART = new CropAdapter() {

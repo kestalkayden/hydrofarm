@@ -42,6 +42,11 @@ public class HydroponicsBedRenderer
     private static final float SCALE_XZ = 0.25f;
     private static final float SCALE_Y  = 0.45f;
     private static final int[] NO_TINT  = {-1};
+    /** Melon/pumpkin render as their full-colour fruit block (see {@link CropAdapter#rendersAsScaledFruit()}),
+     *  swelling with growth and kept centered in the planter: {@link #FRUIT_FULL_SCALE} at maturity, never
+     *  below {@link #FRUIT_MIN_FRAC} of that so a just-planted fruit is still visible. */
+    private static final float FRUIT_FULL_SCALE = 0.25f;
+    private static final float FRUIT_MIN_FRAC   = 0.30f;
 
     /** Reused across collectParts() calls (render thread, one renderer instance per BE type, called
      *  sequentially). Safe to share because collectParts consumes it synchronously. */
@@ -86,6 +91,9 @@ public class HydroponicsBedRenderer
 
         for (int q = 0; q < HydroponicsBedBlockEntity.QUADRANT_COUNT; q++) {
             BlockState cropState = resolveCropState(be, q);
+            // Scale + the scaled-fruit flag depend on live growth and are cheap, so recompute them
+            // every extract (unlike the parts below, which cache by growth stage).
+            fillCropScale(be, q, state);
             // Re-collect the model parts only when this quadrant's growth stage actually changes
             // (BlockStates are interned, so identity compares the stage). The per-frame path is then
             // just this check; collectParts + the fresh list — which submitBlockModel RETAINS for
@@ -114,6 +122,22 @@ public class HydroponicsBedRenderer
         return ca.growthState(visualAge);
     }
 
+    /** Per-quadrant render scale + scaled-fruit flag from live growth. Normal crops get scale 1 and the
+     *  flag false (submit uses the fixed stalk scale); melon/pumpkin scale their fruit block up with
+     *  growth. Writes into the render state directly — no per-frame allocation. */
+    private static void fillCropScale(HydroponicsBedBlockEntity be, int q, State state) {
+        state.scaledFruit[q] = false;
+        state.cropScale[q] = 1f;
+        if (!be.isInstalled(q)) return;
+        CropAdapter ca = CropAdapter.resolve(be.getSeed(q));
+        if (ca == null || !ca.rendersAsScaledFruit()) return;
+        int steps = ca.growthSteps();
+        int growth = Math.max(0, be.getGrowth(q));
+        float frac = steps <= 0 ? 1f : Math.min(1f, (float) growth / steps);
+        state.scaledFruit[q] = true;
+        state.cropScale[q] = FRUIT_FULL_SCALE * (FRUIT_MIN_FRAC + (1f - FRUIT_MIN_FRAC) * frac);
+    }
+
     /** Collects the crop model's parts into a fresh, thereafter-immutable list (null when there is
      *  nothing to draw). The returned list is handed to submitBlockModel as-is on every frame until
      *  the stage changes, so it must never be mutated after this returns, and each quadrant keeps its
@@ -136,8 +160,17 @@ public class HydroponicsBedRenderer
             if (parts == null) continue;
 
             pose.pushPose();
-            pose.translate(ORIGINS[q][0], ORIGINS[q][1], ORIGINS[q][2]);
-            pose.scale(SCALE_XZ, SCALE_Y, SCALE_XZ);
+            if (state.scaledFruit[q]) {
+                // Fruit block scaled uniformly, kept centered over the planter as it swells.
+                float s = state.cropScale[q];
+                float cx = ORIGINS[q][0] + SCALE_XZ / 2f;
+                float cz = ORIGINS[q][2] + SCALE_XZ / 2f;
+                pose.translate(cx - s / 2f, ORIGINS[q][1], cz - s / 2f);
+                pose.scale(s, s, s);
+            } else {
+                pose.translate(ORIGINS[q][0], ORIGINS[q][1], ORIGINS[q][2]);
+                pose.scale(SCALE_XZ, SCALE_Y, SCALE_XZ);
+            }
 
             collector.submitBlockModel(pose, net.minecraft.client.renderer.rendertype.RenderTypes.cutoutMovingBlock(), parts, NO_TINT,
                 state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
@@ -155,6 +188,10 @@ public class HydroponicsBedRenderer
             new List[HydroponicsBedBlockEntity.QUADRANT_COUNT];
         /** The crop BlockState each cropParts entry was collected for (the rebuild key). */
         public final BlockState[] partsFor = new BlockState[HydroponicsBedBlockEntity.QUADRANT_COUNT];
+        /** Per-quadrant uniform render scale for scaled-fruit crops, and the flag selecting that path.
+         *  Recomputed every extract from live growth (cheap), unlike the stage-cached parts above. */
+        public final float[] cropScale = new float[HydroponicsBedBlockEntity.QUADRANT_COUNT];
+        public final boolean[] scaledFruit = new boolean[HydroponicsBedBlockEntity.QUADRANT_COUNT];
         /** Model set the cache was built against; a change means a resource reload happened. */
         public BlockStateModelSet builtModelSet;
     }
