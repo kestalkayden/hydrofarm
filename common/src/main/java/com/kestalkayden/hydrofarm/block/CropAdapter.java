@@ -76,7 +76,7 @@ public interface CropAdapter {
     default Item harvestItem() { return Items.AIR; }
 
     /** How many {@link #harvestItem()} one harvest yields. Defaults to 1 — every normalized crop is a
-     *  single product per cycle. Melon overrides this (4) to reflect its multi-slice vanilla yield;
+     *  single product per cycle. Melon overrides this (3) to reflect its multi-slice vanilla yield;
      *  a single slice per cycle made it the least valuable crop by a wide margin. */
     default int harvestCount() { return 1; }
 
@@ -209,7 +209,7 @@ public interface CropAdapter {
     CropAdapter STEM_MELON = new CropAdapter() {
         @Override public int maxAge() { return StemBlock.MAX_AGE; }
         @Override public Item harvestItem() { return Items.MELON_SLICE; }
-        @Override public int harvestCount() { return 4; }
+        @Override public int harvestCount() { return 3; }
         @Override public boolean rendersAsScaledFruit() { return true; }
         // Render the melon itself, swelling with growth (see rendersAsScaledFruit): the stem is a
         // grayscale texture the bed can't tint, and vanilla has no partial-melon stages anyway.
