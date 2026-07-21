@@ -1,11 +1,16 @@
 package com.kestalkayden.hydrofarm.client;
 
 import com.kestalkayden.hydrofarm.block.HydrofarmBlockEntities;
+import com.kestalkayden.hydrofarm.fluid.HydrofarmFluids;
 import com.kestalkayden.hydrofarm.menu.HydrofarmMenus;
 
+import net.minecraft.client.renderer.block.FluidModel;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
@@ -24,6 +29,7 @@ public final class HydrofarmNeoForgeClient {
     public static void init(IEventBus modBus, ModContainer container) {
         modBus.addListener(HydrofarmNeoForgeClient::onRegisterRenderers);
         modBus.addListener(HydrofarmNeoForgeClient::onRegisterMenuScreens);
+        modBus.addListener(HydrofarmNeoForgeClient::onRegisterFluidModels);
         // Config button on the Mods screen — the NeoForge twin of the Fabric ModMenu entrypoint,
         // opening the same shared config screen.
         container.registerExtensionPoint(
@@ -39,6 +45,24 @@ public final class HydrofarmNeoForgeClient {
         event.registerBlockEntityRenderer(HydrofarmBlockEntities.BUTCHER_BED_BE, AnimalBedRenderer::new);
         event.registerBlockEntityRenderer(HydrofarmBlockEntities.AUTOCRAFTER_BE, AutocrafterRenderer::new);
         event.registerBlockEntityRenderer(HydrofarmBlockEntities.MENDING_STATION_BE, MendingStationRenderer::new);
+    }
+
+    /** Registers our fluids' sprites with the vanilla FluidStateModelSet — the NeoForge twin of the
+     *  Fabric FluidRenderingRegistry calls in HydrofarmClient, kept deliberately in sync.
+     *
+     *  <p>Without this NeoForge logs "Missing FluidModel for fluid 'hydrofarm:liquid_xp'" and any
+     *  third-party tank that renders our fluid (backpacks, Jade, JEI) draws the magenta/black
+     *  missing-model fallback. Tint is null on both — the colour is baked into the textures. Liquid
+     *  XP intentionally uses its still sprite for the flow slot too, matching Fabric. */
+    private static void onRegisterFluidModels(RegisterFluidModelsEvent event) {
+        Material xpStill = new Material(Identifier.fromNamespaceAndPath("hydrofarm", "block/liquid_xp_still"));
+        event.register(new FluidModel.Unbaked(xpStill, xpStill, null, null),
+            HydrofarmFluids.LIQUID_XP_HOLDER);
+
+        Material milkStill = new Material(Identifier.fromNamespaceAndPath("hydrofarm", "block/fluid_milk_still"));
+        Material milkFlow  = new Material(Identifier.fromNamespaceAndPath("hydrofarm", "block/fluid_milk_flow"));
+        event.register(new FluidModel.Unbaked(milkStill, milkFlow, null, null),
+            HydrofarmFluids.FLUID_MILK_HOLDER);
     }
 
     /** Client-only screen registration via NeoForge's RegisterMenuScreensEvent — vanilla
