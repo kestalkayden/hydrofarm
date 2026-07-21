@@ -34,6 +34,10 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
+// Live container view. Never expose item slots via StacksResourceHandler/ItemStacksResourceHandler:
+// those COPY the backing list rather than wrapping it, so the capability ends up detached from the
+// block entity. See ClusterBedItemHandler#itemHandlerOf for the full explanation.
+import net.neoforged.neoforge.transfer.item.WorldlyContainerWrapper;
 
 @Mod(HydrofarmNeoForge.MOD_ID)
 public final class HydrofarmNeoForge {
@@ -246,8 +250,7 @@ public final class HydrofarmNeoForge {
         event.registerBlockEntity(
             Capabilities.Item.BLOCK,
             HydrofarmBlockEntities.AUTOCRAFTER_BE,
-            (be, side) -> be.itemExposure(
-                com.kestalkayden.hydrofarm.block.AutocrafterItemHandler::new));
+            (be, side) -> new WorldlyContainerWrapper(be.itemView(), side));
 
         // Repulser: insert-only energy buffer (cables push in; the BE also pulls itself).
         event.registerBlockEntity(
@@ -261,8 +264,7 @@ public final class HydrofarmNeoForge {
         event.registerBlockEntity(
             Capabilities.Item.BLOCK,
             HydrofarmBlockEntities.MENDING_STATION_BE,
-            (be, side) -> be.itemExposure(
-                com.kestalkayden.hydrofarm.block.MendingStationItemHandler::new));
+            (be, side) -> new WorldlyContainerWrapper(be.itemView(), side));
         event.registerBlockEntity(
             Capabilities.Fluid.BLOCK,
             HydrofarmBlockEntities.MENDING_STATION_BE,

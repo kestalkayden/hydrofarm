@@ -105,9 +105,10 @@ public abstract class AbstractClusterBedBlockEntity extends BlockEntity implemen
      *  members×slots on BOTH loaders — and each consult walked the whole cluster's buffers, making a
      *  failed feed insert O((members×slots)²). The memo lives on the cluster's FIRST member so every
      *  member's query shares one cache (a per-bed memo would still be quadratic across the slot walk).
-     *  Keyed (tick, rev): one walk per item type per actual content change. Mutations that bypass
-     *  {@link #bumpItemRev} (NeoForge's ItemStacksResourceHandler commits into the raw list) are
-     *  bounded by the tick key — at most one tick of staleness, harmless for a feed hoard cap. */
+     *  Keyed (tick, rev): one walk per item type per actual content change. The tick half of the key
+     *  also bounds any mutation that somehow bypasses {@link #bumpItemRev} to a single tick of
+     *  staleness. Both loaders' item capabilities route writes through {@link #setItem}, which bumps
+     *  the revision, so no such bypass exists today — keep it that way. */
     private static final AtomicLong ITEM_CONTENTS_REV = new AtomicLong();
     private final Map<Item, Integer> clusterCountMemo = new HashMap<>();
     private long countMemoTick = Long.MIN_VALUE;
@@ -120,10 +121,6 @@ public abstract class AbstractClusterBedBlockEntity extends BlockEntity implemen
      *  so cluster ops enroll the SAME per-bed instance in a transaction; the loader supplies the
      *  concrete type via a factory. Mirrors LiquidTankBlockEntity's fluidExposure. */
     private Object fluidExposure;
-    /** Companion to {@link #fluidExposure} for the loader's item-capability wrapper — NeoForge's
-     *  per-bed item handler. Fabric exposes items via a fresh ClusterBedContainer, so it's unused
-     *  there. */
-    private Object itemExposure;
 
     protected AbstractClusterBedBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -135,14 +132,6 @@ public abstract class AbstractClusterBedBlockEntity extends BlockEntity implemen
     public <T> T fluidExposure(Function<AbstractClusterBedBlockEntity, T> factory) {
         if (fluidExposure == null) fluidExposure = factory.apply(this);
         return (T) fluidExposure;
-    }
-
-    /** Cached loader-specific item wrapper, created via {@code factory} on first use, so NeoForge's
-     *  ClusterBedItemHandler enrolls the same per-bed handler across the cluster. */
-    @SuppressWarnings("unchecked")
-    public <T> T itemExposure(Function<AbstractClusterBedBlockEntity, T> factory) {
-        if (itemExposure == null) itemExposure = factory.apply(this);
-        return (T) itemExposure;
     }
 
     // ---- Subclass hooks -------------------------------------------------------------------
