@@ -4,14 +4,13 @@ import java.util.List;
 
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
+import net.neoforged.neoforge.transfer.item.VanillaContainerWrapper;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
-/** Cluster-wrapped item handler for any cluster-bed BE. Routes slot operations to the right
- *  member's per-bed {@link net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler}, so
- *  external hoppers attached anywhere on the cluster see the entire pool. Each bed's handler
- *  manages its own snapshot/journal, so transactions still roll back correctly when an op
- *  touches multiple beds. */
+/** Cluster-wrapped item handler for any cluster-bed BE. Routes each slot to the owning member's
+ *  live container wrapper, so external hoppers/pipes attached anywhere on the cluster see the
+ *  entire pool. Each member's wrapper manages its own snapshot/journal, so transactions still roll
+ *  back correctly when an op touches multiple beds. */
 public class ClusterBedItemHandler implements ResourceHandler<ItemResource> {
     private final AbstractClusterBedBlockEntity be;
 
@@ -29,10 +28,21 @@ public class ClusterBedItemHandler implements ResourceHandler<ItemResource> {
         return new Resolved(members.get(memberIdx), local);
     }
 
-    /** The cached per-bed item handler for {@code m} (one instance per BE so cross-member
-     *  transactions enroll the same handler). */
+    /** Live per-bed item handler for {@code m}.
+     *
+     *  <p>MUST stay a container <em>wrapper</em>. This was previously
+     *  {@code new ItemStacksResourceHandler(be.getItems())}, which looks like a wrapper but is not:
+     *  {@code StacksResourceHandler} calls {@code mutableCopyOf(stacks)} and operates on a detached
+     *  {@code NonNullList} copy. Combined with the old per-BE memoisation, that froze a snapshot at
+     *  the first capability query and never reconnected it in either direction — automation could
+     *  neither see the bed's real contents nor write to them, and items pushed in were destroyed on
+     *  commit. {@code VanillaContainerWrapper} delegates every read/write to
+     *  {@code Container.getItem}/{@code setItem} and schedules {@code setChanged()} on root commit,
+     *  so writes go through {@link AbstractClusterBedBlockEntity#setItem}, which bumps the item
+     *  revision. {@code of()} dedupes per Container identity in a global weak map, so cross-member
+     *  transactions still enroll one handler per bed without any caching of our own. */
     private static ResourceHandler<ItemResource> itemHandlerOf(AbstractClusterBedBlockEntity m) {
-        return m.itemExposure(be -> new ItemStacksResourceHandler(be.getItems()));
+        return VanillaContainerWrapper.of(m);
     }
 
     @Override

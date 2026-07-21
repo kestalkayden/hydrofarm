@@ -87,7 +87,6 @@ public class MendingStationBlockEntity extends BlockEntity implements EnergyBuff
      *  their transaction snapshots stay consistent. */
     private Object energyExposure;
     private Object fluidExposure;
-    private Object itemExposure;
 
     public MendingStationBlockEntity(BlockPos pos, BlockState state) {
         super(HydrofarmRefs.MENDING_STATION_BE.get(), pos, state);
@@ -105,11 +104,6 @@ public class MendingStationBlockEntity extends BlockEntity implements EnergyBuff
         return (T) fluidExposure;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T itemExposure(Function<MendingStationBlockEntity, T> factory) {
-        if (itemExposure == null) itemExposure = factory.apply(this);
-        return (T) itemExposure;
-    }
 
     // ---- EnergyBuffer ----
     @Override public int getEnergyStored()   { return energyStored; }

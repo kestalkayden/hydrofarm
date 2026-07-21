@@ -62,6 +62,55 @@ tasks.withType(JavaCompile).configureEach {
     it.options.release = 25
 }
 
+// Regression guard for the "detached item capability" class of bug.
+//
+// StacksResourceHandler (and its ItemStacksResourceHandler subclass) COPIES the collection handed
+// to its constructor — `this.stacks = mutableCopyOf(stacks)` — it does NOT wrap it. Passing a block
+// entity's backing list therefore yields a capability that is permanently disconnected from the
+// block entity: automation cannot see real contents, cannot write to them, and items pushed in are
+// destroyed on commit. That shipped undetected for the mod's entire life because Fabric uses
+// genuine live views and nothing on NeoForge was ever asserted.
+//
+// Block inventories must be exposed through a live container wrapper instead
+// (VanillaContainerWrapper.of(container) / new WorldlyContainerWrapper(container, side)).
+def checkNoDetachedItemHandlers = tasks.register('checkNoDetachedItemHandlers') {
+    description = 'Fails if a NeoForge item capability is built from a copied stack list.'
+    group = 'verification'
+
+    def sourceDir = file('src/main/java')
+    inputs.dir(sourceDir).withPathSensitivity(PathSensitivity.RELATIVE)
+    // Marker file so Gradle can treat this as up-to-date instead of rerunning every build.
+    def marker = layout.buildDirectory.file('tmp/checkNoDetachedItemHandlers.ok')
+    outputs.file(marker)
+
+    doLast {
+        def offenders = []
+        sourceDir.eachFileRecurse { f ->
+            if (!f.name.endsWith('.java')) return
+            f.eachLine('UTF-8') { line, n ->
+                def trimmed = line.trim()
+                // Comments are allowed to name the antipattern — that's how we document it.
+                def isComment = trimmed.startsWith('*') || trimmed.startsWith('//') || trimmed.startsWith('/*')
+                if (trimmed.contains('StacksResourceHandler') && !isComment) {
+                    offenders << "  ${f.name}:${n}: ${trimmed}"
+                }
+            }
+        }
+        if (!offenders.isEmpty()) {
+            throw new GradleException(
+                "StacksResourceHandler copies its backing list; a capability built from it is\n" +
+                "detached from the block entity (invisible contents + item loss on insert).\n" +
+                "Use VanillaContainerWrapper.of(container) or new WorldlyContainerWrapper(container, side).\n" +
+                "Offending lines:\n" + offenders.join('\n'))
+        }
+        def out = marker.get().asFile
+        out.parentFile.mkdirs()
+        out.text = 'ok'
+    }
+}
+
+tasks.named('check') { dependsOn checkNoDetachedItemHandlers }
+
 java {
     withSourcesJar()
 }

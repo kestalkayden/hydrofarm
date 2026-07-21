@@ -186,15 +186,6 @@ public class AutocrafterBlockEntity extends BlockEntity implements EnergyBuffer 
         return (T) energyExposure;
     }
 
-    /** Cached NeoForge output item handler (one instance per BE for transaction consistency). */
-    private Object itemExposure;
-
-    @SuppressWarnings("unchecked")
-    public <T> T itemExposure(Function<AutocrafterBlockEntity, T> factory) {
-        if (itemExposure == null) itemExposure = factory.apply(this);
-        return (T) itemExposure;
-    }
-
     // ---- Energy buffer (insert-only to the outside) ---------------------------------------
     @Override public int getEnergyStored()   { return energyStored; }
     @Override public int getEnergyCapacity() { return ENERGY_CAPACITY; }
