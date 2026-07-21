@@ -85,6 +85,10 @@ public final class HydrofarmNeoForge {
     public HydrofarmNeoForge(IEventBus modBus, ModContainer container) {
         LOGGER.info("Initializing Hydrofarm (NeoForge)");
 
+        // FluidTypes must be registered alongside the fluids themselves: NeoForge throws
+        // "Mod fluids must override getFluidType." for any mod fluid lacking one, which crashes
+        // third-party mods that touch our Liquid XP / Milk. See HydrofarmFluidTypes.
+        com.kestalkayden.hydrofarm.fluid.HydrofarmFluidTypes.FLUID_TYPES.register(modBus);
         HydrofarmFluids.FLUIDS.register(modBus);
         com.kestalkayden.hydrofarm.item.HydrofarmDataComponents.COMPONENTS.register(modBus);
         HydrofarmBlocks.BLOCKS.register(modBus);
