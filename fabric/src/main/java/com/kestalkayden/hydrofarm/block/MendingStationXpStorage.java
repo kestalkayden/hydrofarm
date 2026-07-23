@@ -8,8 +8,10 @@ import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
 
-/** Fabric Transfer adapter for the Mending Station's Liquid XP input — insert-only and Liquid-XP-only
- *  (XP is fuel; it can't be pumped back out). Mirrors the generator's water input. */
+/** Fabric Transfer adapter for the Mending Station's Liquid XP input — insert-only (XP is fuel; it
+ *  can't be pumped back out). Accepts our own {@code liquid_xp} and any recognized foreign Liquid XP
+ *  of the same ratio (relabelled 1:1 via {@link FluidContainers#normalizeXpFluid}). Mirrors the
+ *  generator's water input. */
 public class MendingStationXpStorage extends SnapshotParticipant<Integer>
         implements SingleSlotStorage<FluidVariant> {
 
@@ -23,11 +25,14 @@ public class MendingStationXpStorage extends SnapshotParticipant<Integer>
 
     @Override
     public long insert(FluidVariant resource, long maxAmount, TransactionContext tx) {
-        if (resource.isBlank() || resource.getFluid() != HydrofarmRefs.LIQUID_XP.get()) return 0;
+        // Relabel a recognized foreign Liquid XP (same ratio) to ours; anything else stays itself and
+        // fails the liquid_xp check. mB is 1:1, so the returned amount is correct as-is.
+        if (resource.isBlank()
+            || FluidContainers.normalizeXpFluid(resource.getFluid()) != HydrofarmRefs.LIQUID_XP.get()) return 0;
         long maxMb = maxAmount / DROPLETS_PER_MB;
         if (maxMb <= 0) return 0;
         updateSnapshots(tx);
-        int accepted = be.insertXp(resource.getFluid(), (int) Math.min(maxMb, Integer.MAX_VALUE));
+        int accepted = be.insertXp(HydrofarmRefs.LIQUID_XP.get(), (int) Math.min(maxMb, Integer.MAX_VALUE));
         return accepted * DROPLETS_PER_MB;
     }
 

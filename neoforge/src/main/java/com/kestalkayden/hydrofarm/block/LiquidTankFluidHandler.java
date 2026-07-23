@@ -54,25 +54,30 @@ public class LiquidTankFluidHandler extends SnapshotJournal<LiquidTankBlockEntit
     @Override
     public boolean isValid(int slot, FluidResource resource) {
         if (resource.isEmpty()) return false;
+        Fluid incoming = FluidContainers.normalizeXpFluid(resource.getFluid());
         Fluid current = clusterFluid();
-        return current == Fluids.EMPTY || current == resource.getFluid();
+        return current == Fluids.EMPTY || current == incoming;
     }
 
     @Override
     public int insert(int slot, FluidResource resource, int amount, TransactionContext tx) {
         if (resource.isEmpty() || amount <= 0) return 0;
+        // A recognized foreign Liquid XP (same 20 mB/XP ratio) is relabelled to our own so external
+        // XP aggregates into our pool; every other fluid passes through untouched. mB is unchanged,
+        // so the returned amount is still correct in the source fluid's units.
+        Fluid incoming = FluidContainers.normalizeXpFluid(resource.getFluid());
         // Claim-on-fill: a cluster holds exactly ONE fluid. Refuse the insert if any member already
         // holds a different fluid (isValid checks this, but enforce it here so callers that skip
         // isValid can't slip a stray fluid into an empty member and mix the cluster).
         Fluid current = clusterFluid();
-        if (current != Fluids.EMPTY && current != resource.getFluid()) return 0;
+        if (current != Fluids.EMPTY && current != incoming) return 0;
         List<LiquidTankBlockEntity> members = clusterMembers();
         int remaining = amount;
         int totalAccepted = 0;
         for (LiquidTankBlockEntity m : members) {
             if (remaining <= 0) break;
             m.fluidExposure(LiquidTankFluidHandler::new).enrollInTransaction(tx);
-            int accepted = m.insert(resource.getFluid(), remaining);
+            int accepted = m.insert(incoming, remaining);
             totalAccepted += accepted;
             remaining -= accepted;
         }
