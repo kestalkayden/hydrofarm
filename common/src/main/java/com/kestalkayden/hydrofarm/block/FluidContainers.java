@@ -1,11 +1,14 @@
 package com.kestalkayden.hydrofarm.block;
 
+import java.util.Set;
 import java.util.function.IntConsumer;
 
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -72,6 +75,32 @@ public final class FluidContainers {
             }
         }
         return InteractionResult.PASS;
+    }
+
+    /** Registry ids of other mods' "Liquid XP" fluids that use our EXACT ratio — 20 mB per XP point
+     *  at 1 mB granularity — so they can be accepted 1:1 as our own {@code liquid_xp} with no
+     *  rounding, loss, or amount scaling. Matched by id string (a soft dependency: a mod's absence is
+     *  simply a no-op), NOT by the {@code #c:experience} tag — that tag carries no ratio, and a fluid
+     *  at a different mB/XP ratio relabelled 1:1 would silently lose or mint XP. ONLY add an id here
+     *  after verifying it is 20 mB/XP at 1 mB granularity. */
+    private static final Set<String> FOREIGN_LIQUID_XP_IDS = Set.of("sophisticatedcore:xp_still");
+
+    /** If {@code fluid} is a recognized foreign Liquid XP (see {@link #FOREIGN_LIQUID_XP_IDS}),
+     *  returns our own {@code liquid_xp}; otherwise returns {@code fluid} unchanged. Applied at every
+     *  Liquid-XP insert ingress (the tank and Mending Station fluid capabilities) so external XP
+     *  aggregates into our one XP pool instead of being refused as a different fluid.
+     *
+     *  <p>Because the ratios match, this is a pure <em>relabel</em> — the mB amount is untouched, so
+     *  a caller reports the accepted amount in the source fluid's units directly (SB's pump inserts
+     *  {@code xp_still} then extracts the returned amount of {@code xp_still} from its backpack; 1 mB
+     *  = 1 mB keeps that exact). Any fluid not in the allowlist is returned as-is: this can never
+     *  move, convert, or even meaningfully inspect water, milk, lava, or any other fluid. */
+    public static Fluid normalizeXpFluid(Fluid fluid) {
+        if (fluid == HydrofarmRefs.LIQUID_XP.get()) return fluid;
+        Identifier key = BuiltInRegistries.FLUID.getKey(fluid);
+        return key != null && FOREIGN_LIQUID_XP_IDS.contains(key.toString())
+            ? HydrofarmRefs.LIQUID_XP.get()
+            : fluid;
     }
 
     /** Fluid carried by a filled bucket, for the tank's insert side. EMPTY when {@code item} isn't

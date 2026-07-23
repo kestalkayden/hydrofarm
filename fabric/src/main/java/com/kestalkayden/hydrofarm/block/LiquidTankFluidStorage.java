@@ -36,11 +36,15 @@ public class LiquidTankFluidStorage extends SnapshotParticipant<LiquidTankBlockE
         long maxMb = maxAmount / DROPLETS_PER_MB;
         if (maxMb <= 0) return 0;
 
+        // A recognized foreign Liquid XP (same 20 mB/XP ratio) is relabelled to our own so external
+        // XP aggregates into our pool; every other fluid passes through untouched.
+        Fluid incoming = FluidContainers.normalizeXpFluid(resource.getFluid());
+
         // Claim-on-fill: a cluster holds exactly ONE fluid. If any member already holds a different
         // fluid, refuse the whole insert — otherwise an EMPTY member would silently accept the stray
         // fluid and the cluster would then sum/relabel across fluids (the water-as-XP duplication bug).
         Fluid current = clusterFluid();
-        if (current != Fluids.EMPTY && current != resource.getFluid()) return 0;
+        if (current != Fluids.EMPTY && current != incoming) return 0;
 
         List<LiquidTankBlockEntity> members = clusterMembers();
         long remaining = maxMb;
@@ -48,7 +52,7 @@ public class LiquidTankFluidStorage extends SnapshotParticipant<LiquidTankBlockE
         for (LiquidTankBlockEntity m : members) {
             if (remaining <= 0) break;
             m.fluidExposure(LiquidTankFluidStorage::new).enrollInTransaction(tx);
-            int accepted = m.insert(resource.getFluid(), (int) Math.min(remaining, Integer.MAX_VALUE));
+            int accepted = m.insert(incoming, (int) Math.min(remaining, Integer.MAX_VALUE));
             totalAccepted += accepted;
             remaining -= accepted;
         }

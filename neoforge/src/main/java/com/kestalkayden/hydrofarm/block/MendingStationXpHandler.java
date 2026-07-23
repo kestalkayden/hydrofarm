@@ -7,8 +7,10 @@ import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 import com.kestalkayden.hydrofarm.HydrofarmRefs;
 
-/** NeoForge fluid handler for the Mending Station's Liquid XP input — insert-only and Liquid-XP-only.
- *  Mirrors the generator's water input. */
+/** NeoForge fluid handler for the Mending Station's Liquid XP input — insert-only. Accepts our own
+ *  {@code liquid_xp} and any recognized foreign Liquid XP of the same ratio (relabelled 1:1 via
+ *  {@link FluidContainers#normalizeXpFluid}), so a backpack pump can feed XP straight in. Mirrors
+ *  the generator's water input. */
 public class MendingStationXpHandler extends SnapshotJournal<Integer>
         implements ResourceHandler<FluidResource> {
 
@@ -31,14 +33,18 @@ public class MendingStationXpHandler extends SnapshotJournal<Integer>
 
     @Override
     public boolean isValid(int slot, FluidResource resource) {
-        return !resource.isEmpty() && resource.getFluid() == HydrofarmRefs.LIQUID_XP.get();
+        return !resource.isEmpty()
+            && FluidContainers.normalizeXpFluid(resource.getFluid()) == HydrofarmRefs.LIQUID_XP.get();
     }
 
     @Override
     public int insert(int slot, FluidResource resource, int amount, TransactionContext tx) {
-        if (resource.isEmpty() || resource.getFluid() != HydrofarmRefs.LIQUID_XP.get() || amount <= 0) return 0;
+        if (resource.isEmpty() || amount <= 0) return 0;
+        // Relabel a recognized foreign Liquid XP (same ratio) to ours; anything else stays itself and
+        // fails the liquid_xp check below. mB is 1:1, so the returned amount is correct as-is.
+        if (FluidContainers.normalizeXpFluid(resource.getFluid()) != HydrofarmRefs.LIQUID_XP.get()) return 0;
         updateSnapshots(tx);
-        return be.insertXp(resource.getFluid(), amount);
+        return be.insertXp(HydrofarmRefs.LIQUID_XP.get(), amount);
     }
 
     @Override
