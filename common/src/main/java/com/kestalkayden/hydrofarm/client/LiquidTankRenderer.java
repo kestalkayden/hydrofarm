@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.block.FluidModel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
@@ -15,10 +16,7 @@ import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
@@ -28,9 +26,10 @@ import org.joml.Matrix4f;
 
 /** Per-tank cluster-aware fluid renderer. Each tank emits its own fluid box; bounds and wall
  *  flags depend on whether each neighbor is also in the cluster. Walls toward cluster members
- *  are culled and fluid extends to the block boundary on that side. Sprite is resolved by
- *  convention ({@code <fluid_namespace>:block/<fluid_path>_still}); tint is a small lookup
- *  per known fluid, falling back to white so mod fluids that bake color into their texture
+ *  are culled and fluid extends to the block boundary on that side. Sprites come from the shared
+ *  vanilla fluid-model set (see {@link #extractRenderState}), so any fluid a tank can hold —
+ *  vanilla, ours, or a third party's — draws with its own registered texture; tint is a small
+ *  lookup per known fluid, falling back to white so mod fluids that bake color into their texture
  *  still render correctly. */
 public class LiquidTankRenderer implements BlockEntityRenderer<LiquidTankBlockEntity, LiquidTankRenderer.State> {
 
@@ -41,13 +40,6 @@ public class LiquidTankRenderer implements BlockEntityRenderer<LiquidTankBlockEn
     private static final int GLOW_LEVEL = 12;
     /** Packed glow light, computed once instead of allocating a {@link Brightness} every frame. */
     private static final int GLOW_LIGHT = new Brightness(GLOW_LEVEL, GLOW_LEVEL).pack();
-
-    /** Per-fluid sprite-id cache. The ids are reload-stable, so they're rebuilt only when the
-     *  rendered fluid changes; the cheap atlas {@code get()} still runs per frame and always
-     *  returns the current (post-reload) sprite. Avoids the per-frame id allocations. */
-    private Fluid cachedSpriteFluid;
-    private SpriteId cachedStillId;
-    private SpriteId cachedFlowId;
 
     public LiquidTankRenderer(BlockEntityRendererProvider.Context ctx) {}
 
@@ -115,14 +107,18 @@ public class LiquidTankRenderer implements BlockEntityRenderer<LiquidTankBlockEn
         state.drawWallEast  = !memberEast;
         state.drawWallWest  = !memberWest;
 
-        if (clusterFluid != cachedSpriteFluid) {
-            cachedSpriteFluid = clusterFluid;
-            cachedStillId = spriteId(clusterFluid, "_still");
-            cachedFlowId  = spriteId(clusterFluid, "_flow");
-        }
-        var atlas = Minecraft.getInstance().getAtlasManager();
-        state.spriteStill = atlas.get(cachedStillId);
-        state.spriteFlow  = atlas.get(cachedFlowId);
+        // Sprites come from the vanilla FluidStateModelSet, the shared registry every loader
+        // populates with every fluid's registered still/flow textures — vanilla's, ours (via the
+        // FluidRenderingRegistry / RegisterFluidModelsEvent calls the client init makes), and any
+        // third party's. The old code instead guessed "<namespace>:block/<path>_still", which
+        // happened to match water/lava/our own fluids but produced the missing-texture magenta for
+        // any fluid whose sprite isn't literally named "<path>_still" — e.g. Sophisticated
+        // Backpacks' "sophisticatedcore:xp_still" resolved to the nonexistent "xp_still_still".
+        // A fluid absent from the set still degrades to the missing sprite rather than crashing.
+        FluidModel fluidModel = Minecraft.getInstance().getModelManager()
+            .getFluidStateModelSet().get(clusterFluid.defaultFluidState());
+        state.spriteStill = fluidModel.stillMaterial().sprite();
+        state.spriteFlow  = fluidModel.flowingMaterial().sprite();
         int rgb = tintForFluid(clusterFluid);
         state.colorR = (rgb >> 16) & 0xFF;
         state.colorG = (rgb >> 8) & 0xFF;
@@ -146,18 +142,6 @@ public class LiquidTankRenderer implements BlockEntityRenderer<LiquidTankBlockEn
         if (fluid == HydrofarmRefs.LIQUID_XP.get()) return 0x60;
         if (fluid == HydrofarmRefs.FLUID_MILK.get()) return 0xF8;  // Milk is opaque — bump above water's alpha.
         return FLUID_ALPHA;
-    }
-
-    /** Builds the atlas sprite-id for a fluid by convention: {@code <namespace>:block/<path>_still}
-     *  (top quad) or {@code <namespace>:block/<path>_flow} (side walls). Vanilla water and lava ship
-     *  both; Liquid XP does too. A sprite-id absent from the atlas resolves (on {@code get}) to the
-     *  "missing texture" magenta-and-black, visible enough to signal the issue without crashing. */
-    private static SpriteId spriteId(Fluid fluid, String suffix) {
-        Identifier fluidKey = BuiltInRegistries.FLUID.getKey(fluid);
-        // Sheets.BLOCKS_MAPPER targets the blocks atlas and prefixes "block/" itself — the
-        // non-deprecated replacement for naming TextureAtlas.LOCATION_BLOCKS directly.
-        return Sheets.BLOCKS_MAPPER.apply(Identifier.fromNamespaceAndPath(
-            fluidKey.getNamespace(), fluidKey.getPath() + suffix));
     }
 
     /** Fluid -> tint RGB (alpha applied separately). Lava and most mod fluids have color baked
