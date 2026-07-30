@@ -39,6 +39,10 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
 
     public static final int CELL_CAPACITY = 100_000;
 
+    /** Cached once — Direction.values() clones its 6-element array on every call, and the BFS
+     *  below calls it per polled member. Mirrors LiquidTankBlockEntity#ALL_DIRS. */
+    private static final Direction[] ALL_DIRS = Direction.values();
+
     /** Banking pull: every {@link #PULL_INTERVAL} ticks the cell draws up to {@link #PULL_RATE} from
      *  the connected network's non-cell sources. Matches the consumers' 256/5-tick (~51 E/t) rate. */
     private static final int PULL_INTERVAL = 5;
@@ -152,8 +156,14 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
 
     public Snapshot snapshot() { return new Snapshot(storedEnergy); }
 
+    /** Restores from a transaction snapshot. A simulated (aborted) transfer enrolls every cluster
+     *  member and rolls them all back, so the common case here is restoring a value that never
+     *  changed; the guard keeps that from calling setChanged() — which reaches
+     *  {@code Level#updateNeighbourForOutputSignal} and is far from free — N times per probe. */
     public void restore(Snapshot snapshot) {
-        this.storedEnergy = Math.max(0, Math.min(CELL_CAPACITY, snapshot.storedEnergy()));
+        int clamped = Math.max(0, Math.min(CELL_CAPACITY, snapshot.storedEnergy()));
+        if (this.storedEnergy == clamped) return;
+        this.storedEnergy = clamped;
         setChanged();
     }
 
@@ -172,7 +182,7 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
         int freed = storedEnergy;
         // Clear our own state before redistribute so we are not double-counted.
         this.storedEnergy = 0;
-        for (Direction d : Direction.values()) {
+        for (Direction d : ALL_DIRS) {
             BlockPos neighborPos = pos.relative(d);
             if (level.getBlockState(neighborPos).is(HydrofarmRefs.ENERGY_CELL.get())) {
                 // EXCLUDE this cell from the refill: it is still ENERGY_CELL in the level, so the BFS
@@ -215,7 +225,26 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
         cachedCluster      = fresh;
         cachedClusterEpoch = epoch;
         cachedClusterTick  = now;
+        seedMembers(fresh, epoch, now);
         return fresh;
+    }
+
+    /** Publishes a freshly-walked cluster to every other member so ONE walk serves the whole cluster.
+     *  See {@link LiquidTankBlockEntity#seedMembers} for the full rationale — this is the same O(N^2)
+     *  to O(N) collapse, and the same rule applies: only seed BEs resolved through {@code this.level},
+     *  and only from the instance {@link #findCluster()}, never from the static {@link #findClusterAt}
+     *  (which {@link #redistributeCluster} runs with exclude-on-remove semantics). The cell has no
+     *  renderer, so every caller here is on the server tick thread. */
+    private void seedMembers(Cluster fresh, long epoch, long now) {
+        if (fresh == null || level == null || !fresh.isMultiBlock()) return;
+        for (BlockPos pos : fresh.members()) {
+            if (pos.equals(worldPosition)) continue;
+            if (level.getBlockEntity(pos) instanceof EnergyCellBlockEntity m) {
+                m.cachedCluster      = fresh;
+                m.cachedClusterEpoch = epoch;
+                m.cachedClusterTick  = now;
+            }
+        }
     }
 
     /** Resolved cluster member BEs, cached per tick. The loader capability wrappers query the member
@@ -270,7 +299,7 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
 
         while (!queue.isEmpty()) {
             BlockPos current = queue.poll();
-            for (Direction d : Direction.values()) {
+            for (Direction d : ALL_DIRS) {
                 BlockPos next = current.relative(d);
                 if (members.contains(next)) continue;
                 if (lvl != null && !lvl.hasChunkAt(next)) continue;
@@ -310,9 +339,10 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
     // Redistribute energy across cluster
     // -----------------------------------------------------------------------------------------
 
-    /** Redistributes the cluster's total stored energy evenly across members, used when a cell
-     *  is placed (onPlace) so the new member shares the pool. Returns any energy that didn't fit
-     *  (should be 0 under normal circumstances). */
+    /** Redistributes the cluster's total stored energy across members, used when a cell is placed
+     *  (onPlace) so the new member shares the pool. Fill is bottom-up (members sorted y,z,x), not
+     *  even — lower cells fill to capacity first, matching the tank's settle order. Returns any
+     *  energy that didn't fit (should be 0 under normal circumstances). */
     public static int redistributeCluster(net.minecraft.world.level.Level level, BlockPos seed) {
         return redistributeCluster(level, seed, 0, null);
     }
@@ -343,21 +373,26 @@ public class EnergyCellBlockEntity extends BlockEntity implements EnergyBuffer {
         }
         if (total == 0) return 0;
 
-        // Clear all members, then re-fill from the total.
-        for (BlockPos pos : cluster.members()) {
-            if (excludePos != null && pos.equals(excludePos)) continue;
-            if (level.getBlockEntity(pos) instanceof EnergyCellBlockEntity m) {
-                m.storedEnergy = 0;
-            }
-        }
+        // Settle bottom-up in ONE pass (members are sorted y,z,x): each member's target is
+        // min(remaining, capacity), and members past the fill frontier settle to 0. Do NOT break when
+        // remaining hits 0 — the loop must keep going to clear the members above the frontier.
+        //
+        // This replaces a clear-then-refill shape that wrote every member twice. Its clear pass
+        // assigned the backing field directly (`m.storedEnergy = 0`) instead of going through
+        // setEnergyStored, so it never reached setChanged() -> LevelChunk#markUnsaved. A cell zeroed
+        // in a chunk that saw no other mutation was therefore never marked dirty and reloaded holding
+        // its PRE-clear energy — i.e. the redistribute MINTED energy across a save/load. (Increases
+        // always dirtied via insertEnergy, so only the zeroing could be lost.) It was masked by the
+        // cosmetic LIT flip in serverTick dirtying the chunk a tick later; that guard is incidental,
+        // not a design, and gating LIT for any reason would have made the dupe live.
         long remaining = total;
         for (BlockPos pos : cluster.members()) {
-            if (remaining <= 0) break;
             if (excludePos != null && pos.equals(excludePos)) continue;
-            if (level.getBlockEntity(pos) instanceof EnergyCellBlockEntity m) {
-                int accepted = m.insertEnergy((int) Math.min(remaining, Integer.MAX_VALUE));
-                remaining -= accepted;
-            }
+            if (!(level.getBlockEntity(pos) instanceof EnergyCellBlockEntity m)) continue;
+            int target = (int) Math.min(remaining, CELL_CAPACITY);
+            remaining -= target;
+            if (m.storedEnergy == target) continue;   // no change, no write, no dirty-mark
+            m.setEnergyStored(target);                // clamps and calls setChanged()
         }
         return (int) remaining;
     }

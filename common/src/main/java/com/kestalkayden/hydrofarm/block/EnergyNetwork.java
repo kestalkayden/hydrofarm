@@ -28,6 +28,10 @@ import com.kestalkayden.hydrofarm.util.Backoff;
  *  <p>Holds the source-set cache (epoch + TTL, like the pumps), so it's one instance per BE. */
 public final class EnergyNetwork {
 
+    /** Cached once — Direction.values() clones its 6-element array on every call, and the cable
+     *  walk below calls it per visited node. */
+    private static final Direction[] ALL_DIRS = Direction.values();
+
     private static final long NET_CACHE_TTL = 40;
     /** Pull back-off: when a pull moves nothing (sources dry/absent), skip an exponentially growing
      *  number of subsequent pulls so a powered sink on a dead grid stops re-resolving every endpoint
@@ -48,7 +52,30 @@ public final class EnergyNetwork {
     private final Backoff pullBackoff = new Backoff(1, 1 << PULL_RAMP_CAP, PULL_RAMP_CAP);
     private long pullEpoch = Long.MIN_VALUE;
 
-    private record Source(BlockPos pos, Direction side, boolean isCell) {}
+    /** A boundary block adjacent to the cable network, and the side we reach it from.
+     *
+     *  <p>Deliberately carries NO block-identity flag. It used to hold a baked {@code isCell}, which
+     *  went stale for up to {@code NET_CACHE_TTL} + jitter ticks: this cache keys on
+     *  {@link TransportNetwork#epoch()}, but placing or breaking a cell bumps
+     *  {@link EnergyCellBlockEntity#bumpClusterEpoch()} instead — a different nonce. Break a cell and
+     *  put a generator in its place and the neighbour kept skipping that position as "a cell" for
+     *  ~2-3 s (a missed pull); the reverse staleness let cells pull from cells, defeating
+     *  {@code skipCellSources} and resetting the back-off into a self-sustaining slosh.
+     *
+     *  <p>Do NOT fix that by bumping {@link TransportNetwork#epoch()} from {@code EnergyCellBlock} —
+     *  that invalidates every fluid, item and energy node in the world for a purely local change.
+     *  Test block identity live at the use site instead; it is one {@code getBlockState}.
+     *
+     *  <p>Side benefit: keyed on (pos, side) only, the record is now stable across a block swap at the
+     *  same position, so {@link #endpointCaches} carries its entry over instead of orphaning it. */
+    private record Source(BlockPos pos, Direction side) {}
+
+    /** Live test for "this source is itself an Energy Cell". Guarded by {@code hasChunkAt} so a
+     *  source whose chunk unloaded since the walk can never force-load it from a tick path. */
+    private static boolean isCellSource(ServerLevel level, Source src) {
+        return level.hasChunkAt(src.pos())
+            && level.getBlockState(src.pos()).is(HydrofarmRefs.ENERGY_CELL.get());
+    }
 
     /** The cached resolver for this block's own endpoint (insert side for pull, extract for push). */
     private EnergyApi.Endpoint self(ServerLevel level, BlockPos pos) {
@@ -102,7 +129,7 @@ public final class EnergyNetwork {
                 int budget = Math.min(maxPerPull, room);
                 for (Source src : sources) {
                     if (budget <= 0) break;
-                    if (skipCellSources && src.isCell()) continue;
+                    if (skipCellSources && isCellSource(level, src)) continue;
                     EnergyApi.Endpoint endpoint = endpointOf(level, src);
                     if (endpoint == null || endpoint.extractableEnergy() <= 0) continue;
                     int m = endpoint.moveTo(self, budget);
@@ -166,7 +193,7 @@ public final class EnergyNetwork {
         Set<BlockPos> recorded = new HashSet<>();
         Deque<BlockPos> queue = new ArrayDeque<>();
         visited.add(start);
-        for (Direction d : Direction.values()) {
+        for (Direction d : ALL_DIRS) {
             seed(level, start, d, start, queue, visited, recorded, result);
         }
         while (!queue.isEmpty()) {
@@ -174,7 +201,7 @@ public final class EnergyNetwork {
             if (!level.hasChunkAt(current)) continue;   // never force-load an edge chunk from a tick
             BlockState s = level.getBlockState(current);
             if (!s.is(HydrofarmRefs.ENERGY_PIPE.get())) continue;
-            for (Direction d : Direction.values()) {
+            for (Direction d : ALL_DIRS) {
                 seed(level, current, d, start, queue, visited, recorded, result);
             }
         }
@@ -190,7 +217,7 @@ public final class EnergyNetwork {
         if (s.is(HydrofarmRefs.ENERGY_PIPE.get())) {
             if (visited.add(next)) queue.add(next);
         } else if (recorded.add(next)) {
-            result.add(new Source(next, d.getOpposite(), s.is(HydrofarmRefs.ENERGY_CELL.get())));
+            result.add(new Source(next, d.getOpposite()));
         }
     }
 }
