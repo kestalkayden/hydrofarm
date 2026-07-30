@@ -47,6 +47,11 @@ public class EnergyCellEnergyHandler extends SnapshotJournal<EnergyCellBlockEnti
         int totalAccepted = 0;
         for (EnergyCellBlockEntity m : members) {
             if (remaining <= 0) break;
+            // Skip full cells BEFORE enrolling. insertEnergy() already returns 0 for them without
+            // mutating, so they never needed a snapshot — but enrolling still allocated one and
+            // dirtied the cell again on rollback. Consumers probe extractable energy by SIMULATING a
+            // full extract, so this path runs constantly with nothing to move.
+            if (m.getEnergyStored() >= EnergyCellBlockEntity.CELL_CAPACITY) continue;
             // Enroll each touched cell so rollback restores all modified state.
             m.energyExposure(EnergyCellEnergyHandler::new).enrollInTransaction(tx);
             int accepted = m.insertEnergy(remaining);
@@ -66,6 +71,10 @@ public class EnergyCellEnergyHandler extends SnapshotJournal<EnergyCellBlockEnti
         for (int i = members.size() - 1; i >= 0; i--) {
             if (remaining <= 0) break;
             EnergyCellBlockEntity m = members.get(i);
+            // Skip empty cells BEFORE enrolling — see insert(). This is the hot one: redistribute
+            // packs energy bottom-up while this drains top-down, so the scan starts at the cells
+            // guaranteed to be empty and previously enrolled every one of them.
+            if (m.getEnergyStored() == 0) continue;
             m.energyExposure(EnergyCellEnergyHandler::new).enrollInTransaction(tx);
             int taken = m.extractEnergy(remaining);
             totalTaken += taken;
