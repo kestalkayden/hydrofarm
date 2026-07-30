@@ -1,4 +1,19 @@
 {
+  "_comment": [
+    "The horizontal frame bar, spanning only x 2..14 - the span BETWEEN the two corner cubes.",
+    "",
+    "It used to run the full 0..16, which overlapped energy_cell_edge_v in the 2x2x2 corner. Flush,",
+    "their north/down faces were exactly coplanar and the corners flickered; offset by 0.01 they were",
+    "near-coplanar, which is worse (no deterministic tie-break, so depth precision decides per-pixel",
+    "and the whole frame shimmers); offset by 0.05 the bar no longer reached the block edge and left a",
+    "visible bright seam. There is no good value - the overlap itself is the bug.",
+    "",
+    "Now the corners are owned by exactly one model, always: edge_v when the perpendicular face is",
+    "exposed, and energy_cell_edge_cap when it is not (i.e. a neighbouring cell is there, so edge_v is",
+    "not emitted). Those two conditions are mutually exclusive, so nothing is ever drawn twice and no",
+    "corner is ever left empty. Everything can then sit flush and there is neither a gap nor a",
+    "coplanar pair anywhere."
+  ],
   "parent": "minecraft:block/block",
   "textures": {
     "particle": "hydrofarm:block/liquid_tank_metal",
@@ -6,8 +21,8 @@
   },
   "elements": [
     {
-      "from": [0, 0.05, 0.05],
-      "to":   [16, 2, 2],
+      "from": [2, 0, 0],
+      "to":   [14, 2, 2],
       "faces": {
         "north": {"texture": "#metal", "cullface": "north"},
         "down":  {"texture": "#metal", "cullface": "down"},

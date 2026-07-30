@@ -1,4 +1,24 @@
 {
+  "_comment": [
+    "PANEL_INSET is 0.01, not 0.1. It must be > 0 - the 2-unit metal edge bars sit flush at the block",
+    "face, so the panel has to be behind them or it would be coplanar with them and z-fight. But every",
+    "unit of inset is also a visible gap, because a recessed panel cannot reach its own block's edge.",
+    "",
+    "Worked example: break one block out of the top of a solid cube of cells and look down. Each of the",
+    "four wall panels is recessed into its own block, so the opening measures 16 + 2*inset across while",
+    "each panel spans only 16. At every vertical corner that leaves an inset-square column of nothing -",
+    "and that column lies inside the DIAGONAL neighbour, whose faces are all internal, so nothing is",
+    "drawn there at all and daylight shows straight through. No single block's model can close it; the",
+    "geometry belongs to a block that has no reason to render.",
+    "",
+    "So the gap is inherent to the recess and can only be made small. At 0.1 it was ~3px on a 1080p",
+    "screen - a clearly visible bright hairline. At 0.01 it is ~0.3px, below one pixel at any normal",
+    "viewing distance. Where an edge bar is present the panel is now well inside the bar's 2-unit",
+    "volume, hidden rather than coplanar, so shrinking the inset cannot reintroduce z-fighting.",
+    "",
+    "Do not raise this back toward 0.1 to make the panel look more recessed - at 16px/block the recess",
+    "was never visible as depth, only as this seam."
+  ],
   "parent": "minecraft:block/block",
   "textures": {
     "particle": "hydrofarm:block/energy_cell_face",
@@ -6,7 +26,7 @@
   },
   "elements": [
     {
-      "from": [0, 0, 0.1],
+      "from": [0, 0, 0.01],
       "to":   [16, 16, 16],
       "faces": {
         "north": {"texture": "#panel", "cullface": "north"}

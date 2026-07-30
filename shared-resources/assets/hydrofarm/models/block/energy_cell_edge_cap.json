@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "One 2x2x2 corner cube, at the north-west-down corner in this base orientation.",
+    "",
+    "It fills the end of a horizontal frame bar when energy_cell_edge_v is NOT emitted there - that is,",
+    "when the perpendicular horizontal neighbour is another cell. edge_v is emitted only when BOTH its",
+    "faces are exposed, so the two are exactly complementary: every corner is covered by edge_v or by",
+    "this cap, never by both and never by neither.",
+    "",
+    "Faces rotate correctly with the model: north/west/down here become east/north/down at y=90, and",
+    "south/west/up under x=180, which is what each of those corners needs."
+  ],
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "hydrofarm:block/liquid_tank_metal",
+    "metal":    "hydrofarm:block/liquid_tank_metal"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to":   [2, 2, 2],
+      "faces": {
+        "north": {"texture": "#metal", "cullface": "north"},
+        "west":  {"texture": "#metal", "cullface": "west"},
+        "down":  {"texture": "#metal", "cullface": "down"},
+        "south": {"texture": "#metal"},
+        "up":    {"texture": "#metal"}
+      }
+    }
+  ]
+}
