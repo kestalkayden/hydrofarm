@@ -40,6 +40,11 @@ public class LiquidTankBlockEntity extends BlockEntity {
 
     public static final int TANK_CAPACITY_MB = 16_000;
 
+    /** Cached once — Direction.values() clones its 6-element array on every call, and the BFS
+     *  below calls it per polled member. Mirrors AbstractClusterBedBlockEntity#HORIZONTAL_DIRS.
+     *  Tanks cluster in all six directions (they stack), unlike the single-layer beds. */
+    private static final Direction[] ALL_DIRS = Direction.values();
+
     /** Current fluid in the tank, or {@link Fluids#EMPTY} when the tank holds nothing. The tank
      *  refuses an insert of a different fluid while non-empty; emptying it clears the type. */
     private Fluid fluid = Fluids.EMPTY;
@@ -108,10 +113,12 @@ public class LiquidTankBlockEntity extends BlockEntity {
         if (level == null) return fluid;
         Cluster cluster = findCluster();
         if (cluster == null) return fluid;
-        for (BlockPos pos : cluster.members()) {
-            if (level.getBlockEntity(pos) instanceof LiquidTankBlockEntity m && m.fluid != Fluids.EMPTY) {
-                return m.fluid;
-            }
+        // clusterMembers() is the per-tick-cached resolution of cluster.members() in the same order,
+        // so this keeps the bottom-up "first non-empty wins" semantics while reusing the cached list
+        // instead of re-issuing a getBlockEntity per member. Both loader wrappers already do it this
+        // way; this was the last caller still walking positions directly.
+        for (LiquidTankBlockEntity m : clusterMembers()) {
+            if (m.fluid != Fluids.EMPTY) return m.fluid;
         }
         return Fluids.EMPTY;
     }
@@ -210,8 +217,15 @@ public class LiquidTankBlockEntity extends BlockEntity {
     /** Restores contents from a transaction snapshot — also used by the BE itself when external
      *  code needs to set state directly (e.g., creative tooling, future fill commands). */
     public void restore(Snapshot snapshot) {
+        int clamped = Math.max(0, Math.min(TANK_CAPACITY_MB, snapshot.amountMb));
+        // A simulated (aborted) transfer enrolls members and rolls them all back, so the overwhelmingly
+        // common case is restoring a value that never changed. sync() is not cheap — it ends in
+        // level.sendBlockUpdated, i.e. a BE packet to every tracking client — so an unguarded restore
+        // turned every futile probe into N block updates for zero mB moved. redistributeCluster already
+        // carries the same "no change, no sync" guard; this is the rollback path finally getting it.
+        if (this.fluid == snapshot.fluid && this.amountMb == clamped) return;
         this.fluid = snapshot.fluid;
-        this.amountMb = Math.max(0, Math.min(TANK_CAPACITY_MB, snapshot.amountMb));
+        this.amountMb = clamped;
         sync();
     }
 
@@ -228,7 +242,7 @@ public class LiquidTankBlockEntity extends BlockEntity {
         // findClusterAt(...) — at this moment our block is still in the level.
         this.fluid = Fluids.EMPTY;
         this.amountMb = 0;
-        for (Direction d : Direction.values()) {
+        for (Direction d : ALL_DIRS) {
             BlockPos neighborPos = pos.relative(d);
             if (level.getBlockState(neighborPos).is(HydrofarmRefs.LIQUID_TANK.get())) {
                 // EXCLUDE this tank from the refill: it is still LIQUID_TANK in the level, so the
@@ -333,7 +347,46 @@ public class LiquidTankBlockEntity extends BlockEntity {
         cachedCluster = fresh;
         cachedClusterEpoch = epoch;
         cachedClusterTick = now;
+        seedMembers(fresh, epoch, now);
         return fresh;
+    }
+
+    /** Publishes a freshly-walked cluster to every other member, so ONE walk serves the whole cluster
+     *  instead of each member independently rediscovering the identical member set.
+     *
+     *  <p>This is the difference between O(N) and O(N^2) per invalidation. An epoch bump drops every
+     *  member's cache at once (the epoch is the leading {@code &&} conjunct in {@link #findCluster},
+     *  so it short-circuits past the TTL and the jitter); without seeding, all N members then re-BFS
+     *  the same N-member set on their next call — and for tanks "next call" is the renderer, on the
+     *  very next frame. A 9x9x9 warehouse made that ~531k block reads per placed block.
+     *
+     *  <p>Seeding is exact, not an approximation: the BFS is start-independent (the {@code hasChunkAt}
+     *  guard filters by TARGET position, not by start), so every member would have computed a
+     *  byte-identical {@link Cluster}. Sharing one immutable instance additionally makes
+     *  {@link #clusterMembers()}'s {@code cachedMembersCluster == cluster} reference check succeed for
+     *  every member, collapsing the member-resolution replication too.
+     *
+     *  <p><b>Thread safety rests on one invariant: only ever seed BEs resolved through
+     *  {@code this.level}.</b> Client and server hold separate {@code Level}s and therefore separate BE
+     *  instances, so a client-side walker touches only client-side BEs and a server-side walker only
+     *  server-side ones. The tank has no ticker at all — its callers are the renderer (client, render
+     *  thread) and the loader capability wrappers (server, tick thread) — so the two sides never share
+     *  an object. Do not "optimise" this to reach across levels.
+     *
+     *  <p>Called only from the instance {@link #findCluster()} — NEVER from the static
+     *  {@link #findClusterAt}, which {@link #redistributeCluster} and {@link #preRemoveSideEffects}
+     *  run against a mid-edit level with exclude-on-remove semantics. Seeding from there would
+     *  publish a doomed tank's view of the world to its neighbours. */
+    private void seedMembers(Cluster fresh, long epoch, long now) {
+        if (fresh == null || level == null || !fresh.isMultiBlock()) return;
+        for (BlockPos pos : fresh.members()) {
+            if (pos.equals(worldPosition)) continue;
+            if (level.getBlockEntity(pos) instanceof LiquidTankBlockEntity m) {
+                m.cachedCluster = fresh;
+                m.cachedClusterEpoch = epoch;
+                m.cachedClusterTick = now;
+            }
+        }
     }
 
     /** Resolved cluster member BEs, cached per tick. The loader capability wrappers query the member
@@ -376,19 +429,47 @@ public class LiquidTankBlockEntity extends BlockEntity {
         long now = level.getGameTime();
         long epoch = CLUSTER_EPOCH.get();
         if (cachedTotalsTick == now && cachedTotalsEpoch == epoch) return;
+
+        // Elect the cluster's FIRST member as the sole owner of the aggregate and have everyone else
+        // copy its result. members() is deterministically sorted (y,z,x), so every member elects the
+        // SAME bed — the identical trick AbstractClusterBedBlockEntity#countItemInCluster already uses.
+        //
+        // Without this the memo was per-BE: correct, but replicated N times. Each of N members walked
+        // all N members once per tick to produce the identical scalar — 531k getBlockEntity/tick on a
+        // 9x9x9 warehouse, and worst of all when the cluster is EMPTY, because the first loop then
+        // never breaks. Keying on (tick, epoch) with no jitter also meant all N missed on the SAME
+        // frame. Now: one O(N) walk per cluster per tick, and O(1) for everyone else.
+        if (cluster.isMultiBlock()) {
+            BlockPos ownerPos = cluster.members().get(0);
+            if (!ownerPos.equals(worldPosition)
+                    && level.getBlockEntity(ownerPos) instanceof LiquidTankBlockEntity owner) {
+                owner.ensureClusterTotals(cluster);
+                cachedTotalMb = owner.cachedTotalMb;
+                cachedClusterFluid = owner.cachedClusterFluid;
+                cachedTotalsTick = now;
+                cachedTotalsEpoch = epoch;
+                return;
+            }
+            // Owner resolution failed (member chunk unloaded mid-frame) — fall through and walk it
+            // ourselves rather than render a stale total.
+        }
+
         // Reported fluid = first non-empty member's; sum ONLY members holding THAT fluid, so a
         // physically-mixed cluster never renders another fluid's mB as this fluid (water-as-XP bug).
+        // clusterMembers() is the per-tick-cached resolution of the same list in the same order, so
+        // this preserves the bottom-up "first non-empty" semantics exactly while halving the lookups.
+        List<LiquidTankBlockEntity> members = clusterMembers();
         Fluid f = Fluids.EMPTY;
-        for (BlockPos pos : cluster.members()) {
-            if (level.getBlockEntity(pos) instanceof LiquidTankBlockEntity m && m.getFluid() != Fluids.EMPTY) {
+        for (LiquidTankBlockEntity m : members) {
+            if (m.getFluid() != Fluids.EMPTY) {
                 f = m.getFluid();
                 break;
             }
         }
         long total = 0;
         if (f != Fluids.EMPTY) {
-            for (BlockPos pos : cluster.members()) {
-                if (level.getBlockEntity(pos) instanceof LiquidTankBlockEntity m && m.getFluid() == f) {
+            for (LiquidTankBlockEntity m : members) {
+                if (m.getFluid() == f) {
                     total += m.getAmountMb();
                 }
             }
@@ -424,7 +505,7 @@ public class LiquidTankBlockEntity extends BlockEntity {
 
         while (!queue.isEmpty()) {
             BlockPos current = queue.poll();
-            for (Direction d : Direction.values()) {
+            for (Direction d : ALL_DIRS) {
                 BlockPos next = current.relative(d);
                 if (members.contains(next)) continue;
                 if (lvl != null && !lvl.hasChunkAt(next)) continue;

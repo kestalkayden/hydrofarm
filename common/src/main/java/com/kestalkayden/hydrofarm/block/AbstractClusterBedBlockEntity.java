@@ -589,7 +589,34 @@ public abstract class AbstractClusterBedBlockEntity extends BlockEntity implemen
         cachedCluster = fresh;
         cachedClusterEpoch = epoch;
         cachedClusterTick = now;
+        seedMembers(fresh, epoch, now);
         return fresh;
+    }
+
+    /** Publishes a freshly-walked cluster to every other member so ONE walk serves the whole pen.
+     *  See {@link LiquidTankBlockEntity#seedMembers} for the full rationale.
+     *
+     *  <p>This matters more for beds than the pen size suggests: {@link #CLUSTER_EPOCH} is a single
+     *  static shared by ALL FOUR bed types, so placing one hydroponics bed drops the cache of every
+     *  husbandry, butcher and tree-farm bed in the JVM. The N that re-walks is not one pen — it is
+     *  every loaded bed of every type.
+     *
+     *  <p>Same rule as the tank: only seed BEs resolved through {@code this.level} (the bed ticker is
+     *  null client-side, so the render thread only ever touches client BEs and the tick thread only
+     *  server BEs), and only from the instance {@link #findCluster()}, never from the static
+     *  {@link #findClusterAt} — {@code redistributeCluster} calls that one with exclude-on-remove
+     *  semantics against a mid-edit level. Cluster discovery is block-typed, so a seeded member is
+     *  always the same subclass and the shared {@code version} stamp stays valid. */
+    private void seedMembers(Cluster fresh, long epoch, long now) {
+        if (fresh == null || level == null || fresh.size() <= 1) return;
+        for (BlockPos pos : fresh.members()) {
+            if (pos.equals(worldPosition)) continue;
+            if (level.getBlockEntity(pos) instanceof AbstractClusterBedBlockEntity m) {
+                m.cachedCluster = fresh;
+                m.cachedClusterEpoch = epoch;
+                m.cachedClusterTick = now;
+            }
+        }
     }
 
     /** Invalidate every bed's cached cluster. Called when a cluster bed connects to or disconnects
