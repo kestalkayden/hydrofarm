@@ -39,6 +39,10 @@ public class EnergyCellEnergyStorage extends SnapshotParticipant<EnergyCellBlock
         long totalAccepted = 0;
         for (EnergyCellBlockEntity m : members) {
             if (remaining <= 0) break;
+            // Skip full cells BEFORE enrolling. insertEnergy() already returns 0 for them without
+            // mutating, so they never needed a snapshot — but enrolling still allocated one and
+            // dirtied the cell again on rollback.
+            if (m.getEnergyStored() >= EnergyCellBlockEntity.CELL_CAPACITY) continue;
             // Enroll each touched cell into the transaction for atomic rollback.
             m.energyExposure(EnergyCellEnergyStorage::new).enrollInTransaction(transaction);
             int accepted = m.insertEnergy((int) Math.min(remaining, Integer.MAX_VALUE));
@@ -62,6 +66,10 @@ public class EnergyCellEnergyStorage extends SnapshotParticipant<EnergyCellBlock
         for (int i = members.size() - 1; i >= 0; i--) {
             if (remaining <= 0) break;
             EnergyCellBlockEntity m = members.get(i);
+            // Skip empty cells BEFORE enrolling — see insert(). This is the hot one: redistribute
+            // packs energy bottom-up while this drains top-down, so the scan starts at the cells
+            // guaranteed to be empty and previously enrolled every one of them.
+            if (m.getEnergyStored() == 0) continue;
             m.energyExposure(EnergyCellEnergyStorage::new).enrollInTransaction(transaction);
             int taken = m.extractEnergy((int) Math.min(remaining, Integer.MAX_VALUE));
             totalTaken += taken;

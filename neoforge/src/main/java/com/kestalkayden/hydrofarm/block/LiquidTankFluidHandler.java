@@ -76,6 +76,15 @@ public class LiquidTankFluidHandler extends SnapshotJournal<LiquidTankBlockEntit
         int totalAccepted = 0;
         for (LiquidTankBlockEntity m : members) {
             if (remaining <= 0) break;
+            // Skip members that provably cannot accept BEFORE enrolling them. m.insert() already
+            // returns 0 for both cases without mutating or syncing, so an unmutated member never
+            // needed a snapshot — but enrolling it still allocated one and, on abort, restored and
+            // re-synced it (a block update to every tracking client) for zero mB moved. A cluster is
+            // filled bottom-up, so a probe against a mostly-full warehouse enrolled nearly every
+            // member to no effect. Physically-mixed clusters are tolerated by design, hence the
+            // per-member fluid test rather than relying on the cluster-level claim check above.
+            if (m.getRoomMb() == 0) continue;
+            if (m.getFluid() != Fluids.EMPTY && m.getFluid() != incoming) continue;
             m.fluidExposure(LiquidTankFluidHandler::new).enrollInTransaction(tx);
             int accepted = m.insert(incoming, remaining);
             totalAccepted += accepted;
@@ -93,6 +102,9 @@ public class LiquidTankFluidHandler extends SnapshotJournal<LiquidTankBlockEntit
         for (int i = members.size() - 1; i >= 0; i--) {
             if (remaining <= 0) break;
             LiquidTankBlockEntity m = members.get(i);
+            // Skip-before-enroll, same reasoning as insert(). Draining is top-down while filling is
+            // bottom-up, so the scan always starts at the members most likely to be empty.
+            if (m.getAmountMb() == 0 || m.getFluid() != resource.getFluid()) continue;
             m.fluidExposure(LiquidTankFluidHandler::new).enrollInTransaction(tx);
             int taken = m.extract(resource.getFluid(), remaining);
             totalTaken += taken;
