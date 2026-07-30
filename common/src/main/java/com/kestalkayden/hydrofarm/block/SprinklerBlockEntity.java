@@ -1,15 +1,14 @@
 package com.kestalkayden.hydrofarm.block;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -101,23 +100,32 @@ public class SprinklerBlockEntity extends BlockEntity {
     }
 
     // ---- sprinkler position index (for FarmlandBlockMixin) -----------------------------------
-    // Per-dimension set of loaded sprinkler positions. FarmlandBlockMixin used to scan a 9×2×9
+    // Per-level set of loaded sprinkler positions. FarmlandBlockMixin used to scan a 9×2×9
     // (162-block) getBlockState box on EVERY farmland random-tick decay — globally, for all farmland
     // in the world (including vanilla farms nowhere near a sprinkler). Instead it now asks this index
     // for a watered sprinkler near a farmland block: a cheap bounds test over the (usually tiny)
-    // per-dimension set, with an instant null when the dimension has no sprinklers at all (the common
-    // case). Server-thread only, so a plain map/set is safe. Mirrors RepulserField.ACTIVE.
-    private static final Map<ResourceKey<Level>, Set<BlockPos>> SPRINKLERS = new HashMap<>();
+    // per-level set, with an instant null when the level has no sprinklers at all (the common case).
+    // Server-thread only, so an unsynchronized map/set is safe. Mirrors RepulserField.ACTIVE.
+    //
+    // Keyed by the Level INSTANCE, in a WeakHashMap — deliberately NOT by ResourceKey<Level>. A
+    // ResourceKey is a value: `minecraft:overworld` is the same key in every world, so in singleplayer
+    // the overworld entries of world A were still in this static map when world B loaded. Those ghost
+    // positions then fed the farmland decay path, which resolved a block entity at a coordinate
+    // belonging to a different save. Level identity cannot collide across worlds, and the weak key
+    // means a closed world's entry is collected on its own — no shutdown hook to register, and so no
+    // loader-specific lifecycle wiring. Level does not override equals/hashCode, so this is
+    // identity-keyed as intended.
+    private static final Map<Level, Set<BlockPos>> SPRINKLERS = new WeakHashMap<>();
 
     private static void register(Level level, BlockPos pos) {
-        SPRINKLERS.computeIfAbsent(level.dimension(), k -> new HashSet<>()).add(pos.immutable());
+        SPRINKLERS.computeIfAbsent(level, k -> new HashSet<>()).add(pos.immutable());
     }
 
     private static void unregister(Level level, BlockPos pos) {
-        Set<BlockPos> set = SPRINKLERS.get(level.dimension());
+        Set<BlockPos> set = SPRINKLERS.get(level);
         if (set != null) {
             set.remove(pos);
-            if (set.isEmpty()) SPRINKLERS.remove(level.dimension());
+            if (set.isEmpty()) SPRINKLERS.remove(level);
         }
     }
 
@@ -127,7 +135,7 @@ public class SprinklerBlockEntity extends BlockEntity {
      *  only for actual sprinkler positions and pruning any that are no longer sprinklers (mirrors
      *  {@link RepulserField#covers}). */
     public static SprinklerBlockEntity wateredSprinklerNear(ServerLevel level, BlockPos farmland) {
-        Set<BlockPos> set = SPRINKLERS.get(level.dimension());
+        Set<BlockPos> set = SPRINKLERS.get(level);
         if (set == null || set.isEmpty()) return null;
         Iterator<BlockPos> it = set.iterator();
         while (it.hasNext()) {
@@ -136,9 +144,15 @@ public class SprinklerBlockEntity extends BlockEntity {
             if (dy < 0 || dy > 1) continue;   // sprinkler at farmland's Y or one above (vanilla's box)
             if (Math.abs(sp.getX() - farmland.getX()) > AOE_RADIUS
                 || Math.abs(sp.getZ() - farmland.getZ()) > AOE_RADIUS) continue;
+            // hasChunkAt BEFORE getBlockEntity: Level#getBlockEntity resolves through getChunkAt,
+            // which loads/generates the chunk synchronously. A stale index entry (e.g. one left by a
+            // previously-loaded world in the same dimension) could therefore force-load a chunk from
+            // the farmland random-tick path. Unloaded entries are kept, not pruned — we cannot judge
+            // them, and they self-prune once their chunk is loaded.
+            if (!level.hasChunkAt(sp)) continue;
             if (level.getBlockEntity(sp) instanceof SprinklerBlockEntity sbe) {
                 if (sbe.getWaterMb() > 0) return sbe;
-            } else if (level.hasChunkAt(sp)) {
+            } else {
                 it.remove();   // loaded but no longer a sprinkler → stale entry, prune
             }
         }

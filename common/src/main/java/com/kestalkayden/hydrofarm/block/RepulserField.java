@@ -1,15 +1,14 @@
 package com.kestalkayden.hydrofarm.block;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -31,28 +30,36 @@ public final class RepulserField {
     private static final int SWEEP_INTERVAL = 20;   // ticks between sweeps (1 s)
     private static final int SWEEP_RADIUS = 24;     // half-box scanned around each player
 
-    private static final Map<ResourceKey<Level>, Set<BlockPos>> ACTIVE = new HashMap<>();
+    // Keyed by the Level INSTANCE, in a WeakHashMap — deliberately not by ResourceKey<Level>.
+    // A ResourceKey is a value: `minecraft:overworld` is the same key in every world, so in
+    // singleplayer the overworld entries of world A were still in this static map when world B
+    // loaded. That mattered more here than for the sprinkler index, because anyActive() is the fast
+    // "is there anything to check" gate on the mob-spawn hook and never prunes — a single ghost entry
+    // silently defeated it for every spawn attempt, for the rest of the session. Level identity
+    // cannot collide across worlds, and the weak key means a closed world's entry is collected on its
+    // own — no shutdown hook, hence no loader-specific lifecycle wiring. Level does not override
+    // equals/hashCode, so this is identity-keyed as intended.
+    private static final Map<Level, Set<BlockPos>> ACTIVE = new WeakHashMap<>();
 
     private RepulserField() {}
 
-    /** Mark a repulser active/inactive for its dimension. Refreshed each upkeep tick by the BE, and
+    /** Mark a repulser active/inactive for its level. Refreshed each upkeep tick by the BE, and
      *  cleared on {@code setRemoved}. */
     public static void setActive(Level level, BlockPos pos, boolean active) {
-        ResourceKey<Level> dim = level.dimension();
         if (active) {
-            ACTIVE.computeIfAbsent(dim, k -> new HashSet<>()).add(pos.immutable());
+            ACTIVE.computeIfAbsent(level, k -> new HashSet<>()).add(pos.immutable());
         } else {
-            Set<BlockPos> set = ACTIVE.get(dim);
+            Set<BlockPos> set = ACTIVE.get(level);
             if (set != null) {
                 set.remove(pos);
-                if (set.isEmpty()) ACTIVE.remove(dim);
+                if (set.isEmpty()) ACTIVE.remove(level);
             }
         }
     }
 
     /** Cheap "is there anything to check" gate for the hot spawn hook. */
     public static boolean anyActive(Level level) {
-        Set<BlockPos> set = ACTIVE.get(level.dimension());
+        Set<BlockPos> set = ACTIVE.get(level);
         return set != null && !set.isEmpty();
     }
 
@@ -60,14 +67,18 @@ public final class RepulserField {
      *  repulser (and prunes confirmed-stale entries), so a leaked registry entry can never wrongly
      *  block spawns. Early-outs on the first covering field, so overlaps add no cost. */
     public static boolean covers(ServerLevel level, double x, double y, double z) {
-        Set<BlockPos> set = ACTIVE.get(level.dimension());
+        Set<BlockPos> set = ACTIVE.get(level);
         if (set == null || set.isEmpty()) return false;
         Iterator<BlockPos> it = set.iterator();
         while (it.hasNext()) {
             BlockPos p = it.next();
             if (!RepulserTargeting.withinField(p, x, y, z)) continue;
+            // hasChunkAt BEFORE getBlockEntity: Level#getBlockEntity resolves through getChunkAt,
+            // which loads/generates the chunk synchronously — and this runs from the mob-spawn hook.
+            // Unloaded entries are kept, not pruned; they self-prune once their chunk is loaded.
+            if (!level.hasChunkAt(p)) continue;
             if (level.getBlockEntity(p) instanceof RepulserBlockEntity r && r.isFieldActive()) return true;
-            if (level.hasChunkAt(p)) it.remove();   // loaded but not an active repulser → stale
+            it.remove();   // loaded but not an active repulser → stale
         }
         return false;
     }
@@ -76,7 +87,7 @@ public final class RepulserField {
      *  to {@link #SWEEP_INTERVAL}. */
     public static void sweep(ServerLevel level) {
         if (level.getGameTime() % SWEEP_INTERVAL != 0) return;
-        Set<BlockPos> set = ACTIVE.get(level.dimension());
+        Set<BlockPos> set = ACTIVE.get(level);
         if (set == null || set.isEmpty()) return;
         List<ServerPlayer> players = level.players();
         if (players.isEmpty()) return;
